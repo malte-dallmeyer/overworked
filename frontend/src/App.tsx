@@ -11,6 +11,7 @@ import {
 import { isUnauthorized } from './apiError'
 import { LoginForm } from './LoginForm'
 import { Logo } from './Logo'
+import { PushToggle } from './PushToggle'
 import { RunningSession } from './RunningSession'
 import { StartForm } from './StartForm'
 import { useLiveUpdates } from './useLiveUpdates'
@@ -34,6 +35,7 @@ export default function App() {
       <header className="brand">
         <Logo size={36} />
         <h1>Overworked</h1>
+        {current.isSuccess && <PushToggle />}
       </header>
       <main>
         {current.isPending ? (

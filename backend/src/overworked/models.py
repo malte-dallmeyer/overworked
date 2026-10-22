@@ -292,6 +292,18 @@ class WorkSession(Base):
             raise InvalidPause("pause overlaps another pause")
 
 
+class PushSubscription(Base):
+    """A browser that wants the alarm as web push (one per browser profile)."""
+
+    __tablename__ = "push_subscriptions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    endpoint: Mapped[str] = mapped_column(String(1000), unique=True)
+    p256dh: Mapped[str] = mapped_column(String(200))
+    auth: Mapped[str] = mapped_column(String(100))
+
+
 class Pause(Base):
     __tablename__ = "pauses"
 

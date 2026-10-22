@@ -42,13 +42,13 @@ class SpyNotifier:
     def sent(self) -> list[tuple[str, str]]:
         return [(m.title, m.message) for m in self.messages]
 
-    def send(self, title, message, *, key=None, actions=(), click=None, urgent=True) -> None:
+    def send(self, title, message, *, key=None, actions=(), click=None, urgent=True, user_id=None):
         if self.fail_next:
             self.fail_next = False
             raise ConnectionError("ntfy unreachable")
         self.messages.append(Message(title, message, key, list(actions), click, urgent))
 
-    def clear(self, key: str) -> None:
+    def clear(self, key: str, *, user_id=None) -> None:
         self.cleared.append(key)
 
 

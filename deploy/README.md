@@ -99,6 +99,7 @@ Host overworked
 
 ```sh
 cp deploy/.env.example deploy/.env             # ausfüllen: Image, Domain, Passwort, Secret Key, ntfy-Topic
+node scripts/generate-vapid-keys.mjs           # optional, Ausgabe in deploy/.env: Web-Push für Desktop-Browser
 node scripts/deploy.mjs overworked
 ```
 
@@ -110,7 +111,8 @@ Caddy holt beim ersten Aufruf der Domain das Zertifikat. Danach läuft die App u
 - **Handy (Android):** Die [ntfy-App](https://ntfy.sh) installieren und das Topic aus
   `OVERWORKED_NTFY_TOPIC` abonnieren. Dann die Domain in Chrome öffnen, anmelden und über
   *Zum Startbildschirm hinzufügen* als App installieren.
-- **Desktop:** Die Domain im Browser öffnen und anmelden. In Chrome oder Edge lässt sie sich
+- **Desktop:** Die Domain im Browser öffnen und anmelden. Mit der Glocke oben rechts kommen
+  Alarme auch als Benachrichtigung, solange der Browser läuft (braucht die VAPID-Schlüssel). In Chrome oder Edge lässt sie sich
   über das Installieren-Symbol in der Adressleiste installieren, in Safari über *Zum Dock
   hinzufügen*.
 

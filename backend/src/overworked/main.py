@@ -1,4 +1,5 @@
 import asyncio
+from collections.abc import Callable
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 
@@ -13,13 +14,30 @@ from overworked.clock import Clock, utc_now
 from overworked.config import Settings
 from overworked.db import make_engine
 from overworked.migrations import upgrade_to_head
-from overworked.notifier import LogNotifier, Notifier, NtfyNotifier
+from overworked.notifier import CompositeNotifier, LogNotifier, Notifier, NtfyNotifier
+from overworked.push import WebPushNotifier
 
 
-def make_notifier(settings: Settings) -> Notifier:
+def make_phone_notifier(settings: Settings) -> Notifier:
     if settings.ntfy_topic:
         return NtfyNotifier(settings.ntfy_url, settings.ntfy_topic, settings.ntfy_token)
     return LogNotifier()
+
+
+def make_notifier(
+    settings: Settings, phone: Notifier, session_factory, push_service=None
+) -> Notifier:
+    """ntfy for the phone, plus web push to browsers if configured."""
+    if not settings.web_push_enabled:
+        return phone
+    assert settings.vapid_private_key
+    web = WebPushNotifier(
+        session_factory,
+        settings.vapid_private_key.get_secret_value(),
+        settings.vapid_subject or settings.public_url or "mailto:admin@localhost",
+        **({"push": push_service} if push_service else {}),
+    )
+    return CompositeNotifier(phone, web)
 
 
 def create_app(
@@ -29,12 +47,15 @@ def create_app(
     notifier: Notifier | None = None,
     run_alarm_loop: bool = True,
     login_delay_seconds: float = 1,
+    push_service: Callable[..., object] | None = None,
     events_poll_seconds: float = 1,
 ) -> FastAPI:
     settings = settings or Settings()
     engine = make_engine(settings.database_url)
     session_factory = sessionmaker(engine, expire_on_commit=False)
-    notifier = notifier or make_notifier(settings)
+    notifier = make_notifier(
+        settings, notifier or make_phone_notifier(settings), session_factory, push_service
+    )
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):

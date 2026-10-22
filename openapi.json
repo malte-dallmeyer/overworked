@@ -540,6 +540,95 @@
           }
         }
       }
+    },
+    "/api/push/key": {
+      "get": {
+        "summary": "Get Push Key",
+        "operationId": "get_push_key",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushKeyOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/push/subscriptions": {
+      "post": {
+        "summary": "Subscribe Push",
+        "description": "Idempotent: a browser that subscribes again just updates its keys.",
+        "operationId": "subscribe_push",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushSubscriptionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Unsubscribe Push",
+        "operationId": "unsubscribe_push",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PushEndpoint"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -656,6 +745,80 @@
           "ended_at"
         ],
         "title": "PauseOut"
+      },
+      "PushEndpoint": {
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Endpoint"
+          }
+        },
+        "type": "object",
+        "required": [
+          "endpoint"
+        ],
+        "title": "PushEndpoint"
+      },
+      "PushKeyOut": {
+        "properties": {
+          "public_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Key",
+            "description": "VAPID key for PushManager.subscribe(); null: off."
+          }
+        },
+        "type": "object",
+        "required": [
+          "public_key"
+        ],
+        "title": "PushKeyOut"
+      },
+      "PushKeys": {
+        "properties": {
+          "p256dh": {
+            "type": "string",
+            "maxLength": 200,
+            "title": "P256Dh"
+          },
+          "auth": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Auth"
+          }
+        },
+        "type": "object",
+        "required": [
+          "p256dh",
+          "auth"
+        ],
+        "title": "PushKeys"
+      },
+      "PushSubscriptionIn": {
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "maxLength": 1000,
+            "title": "Endpoint"
+          },
+          "keys": {
+            "$ref": "#/components/schemas/PushKeys"
+          }
+        },
+        "type": "object",
+        "required": [
+          "endpoint",
+          "keys"
+        ],
+        "title": "PushSubscriptionIn",
+        "description": "As PushSubscription.toJSON() in the browser."
       },
       "QuickTargetsOut": {
         "properties": {

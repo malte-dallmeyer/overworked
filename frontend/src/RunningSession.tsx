@@ -8,6 +8,7 @@ import { Ring } from './Ring'
 import { currentPause, endTime, hint, missingBreakMs, remainingMs } from './session'
 import { dayProgress } from './sky'
 import { formatClockTime, formatCountdown } from './time'
+import { useAlarmSound } from './useAlarmSound'
 import { useNow } from './useNow'
 import { useSky } from './useSky'
 
@@ -30,6 +31,7 @@ export function RunningSession({ session, onPause, onResume, onEnd, onSnooze }: 
   const pause = currentPause(session, now)
   const snoozeLeft = session.snoozed_until ? Math.max(0, Date.parse(session.snoozed_until) - now.getTime()) : 0
   const canSnooze = remaining === 0 && !session.snoozed_until && !pause
+  useAlarmSound(remaining === 0 && snoozeLeft === 0 && !pause)
   useSky(dayProgress(start, end, now))
   const close = () => setSheet({ open: null })
 

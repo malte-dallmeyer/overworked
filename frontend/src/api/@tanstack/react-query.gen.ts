@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { addPause, changePause, changeTarget, endSession, endSessionFromNotification, getCurrentSession, getQuickTargets, health, login, logout, type Options, pauseSession, removePause, resumeSession, snoozeSession, snoozeSessionFromNotification, startSession } from '../sdk.gen';
-import type { AddPauseData, AddPauseError, AddPauseResponse, ChangePauseData, ChangePauseError, ChangePauseResponse, ChangeTargetData, ChangeTargetError, ChangeTargetResponse, EndSessionData, EndSessionError, EndSessionFromNotificationData, EndSessionFromNotificationError, EndSessionFromNotificationResponse, EndSessionResponse, GetCurrentSessionData, GetCurrentSessionError, GetCurrentSessionResponse, GetQuickTargetsData, GetQuickTargetsError, GetQuickTargetsResponse, HealthData, HealthResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, PauseSessionData, PauseSessionError, PauseSessionResponse, RemovePauseData, RemovePauseError, RemovePauseResponse, ResumeSessionData, ResumeSessionError, ResumeSessionResponse, SnoozeSessionData, SnoozeSessionError, SnoozeSessionFromNotificationData, SnoozeSessionFromNotificationError, SnoozeSessionFromNotificationResponse, SnoozeSessionResponse, StartSessionData, StartSessionError, StartSessionResponse } from '../types.gen';
+import { addPause, changePause, changeTarget, endSession, endSessionFromNotification, getCurrentSession, getPushKey, getQuickTargets, health, login, logout, type Options, pauseSession, removePause, resumeSession, snoozeSession, snoozeSessionFromNotification, startSession, subscribePush, unsubscribePush } from '../sdk.gen';
+import type { AddPauseData, AddPauseError, AddPauseResponse, ChangePauseData, ChangePauseError, ChangePauseResponse, ChangeTargetData, ChangeTargetError, ChangeTargetResponse, EndSessionData, EndSessionError, EndSessionFromNotificationData, EndSessionFromNotificationError, EndSessionFromNotificationResponse, EndSessionResponse, GetCurrentSessionData, GetCurrentSessionError, GetCurrentSessionResponse, GetPushKeyData, GetPushKeyError, GetPushKeyResponse, GetQuickTargetsData, GetQuickTargetsError, GetQuickTargetsResponse, HealthData, HealthResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, PauseSessionData, PauseSessionError, PauseSessionResponse, RemovePauseData, RemovePauseError, RemovePauseResponse, ResumeSessionData, ResumeSessionError, ResumeSessionResponse, SnoozeSessionData, SnoozeSessionError, SnoozeSessionFromNotificationData, SnoozeSessionFromNotificationError, SnoozeSessionFromNotificationResponse, SnoozeSessionResponse, StartSessionData, StartSessionError, StartSessionResponse, SubscribePushData, SubscribePushError, SubscribePushResponse, UnsubscribePushData, UnsubscribePushError, UnsubscribePushResponse } from '../types.gen';
 
 /**
  * Login
@@ -314,6 +314,60 @@ export const changePauseMutation = (options?: Partial<Options<ChangePauseData>>)
     const mutationOptions: UseMutationOptions<ChangePauseResponse, ChangePauseError, Options<ChangePauseData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await changePause({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+export const getPushKeyQueryKey = (options?: Options<GetPushKeyData>) => createQueryKey('getPushKey', options);
+
+/**
+ * Get Push Key
+ */
+export const getPushKeyOptions = (options?: Options<GetPushKeyData>) => queryOptions<GetPushKeyResponse, GetPushKeyError, GetPushKeyResponse, ReturnType<typeof getPushKeyQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getPushKey({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getPushKeyQueryKey(options)
+});
+
+/**
+ * Unsubscribe Push
+ */
+export const unsubscribePushMutation = (options?: Partial<Options<UnsubscribePushData>>): UseMutationOptions<UnsubscribePushResponse, UnsubscribePushError, Options<UnsubscribePushData>> => {
+    const mutationOptions: UseMutationOptions<UnsubscribePushResponse, UnsubscribePushError, Options<UnsubscribePushData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await unsubscribePush({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Subscribe Push
+ *
+ * Idempotent: a browser that subscribes again just updates its keys.
+ */
+export const subscribePushMutation = (options?: Partial<Options<SubscribePushData>>): UseMutationOptions<SubscribePushResponse, SubscribePushError, Options<SubscribePushData>> => {
+    const mutationOptions: UseMutationOptions<SubscribePushResponse, SubscribePushError, Options<SubscribePushData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await subscribePush({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

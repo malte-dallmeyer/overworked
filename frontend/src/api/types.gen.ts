@@ -85,6 +85,55 @@ export type PauseOut = {
 };
 
 /**
+ * PushEndpoint
+ */
+export type PushEndpoint = {
+    /**
+     * Endpoint
+     */
+    endpoint: string;
+};
+
+/**
+ * PushKeyOut
+ */
+export type PushKeyOut = {
+    /**
+     * Public Key
+     *
+     * VAPID key for PushManager.subscribe(); null: off.
+     */
+    public_key: string | null;
+};
+
+/**
+ * PushKeys
+ */
+export type PushKeys = {
+    /**
+     * P256Dh
+     */
+    p256dh: string;
+    /**
+     * Auth
+     */
+    auth: string;
+};
+
+/**
+ * PushSubscriptionIn
+ *
+ * As PushSubscription.toJSON() in the browser.
+ */
+export type PushSubscriptionIn = {
+    /**
+     * Endpoint
+     */
+    endpoint: string;
+    keys: PushKeys;
+};
+
+/**
  * QuickTargetsOut
  */
 export type QuickTargetsOut = {
@@ -642,3 +691,78 @@ export type ChangePauseResponses = {
 };
 
 export type ChangePauseResponse = ChangePauseResponses[keyof ChangePauseResponses];
+
+export type GetPushKeyData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/push/key';
+};
+
+export type GetPushKeyErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetPushKeyError = GetPushKeyErrors[keyof GetPushKeyErrors];
+
+export type GetPushKeyResponses = {
+    /**
+     * Successful Response
+     */
+    200: PushKeyOut;
+};
+
+export type GetPushKeyResponse = GetPushKeyResponses[keyof GetPushKeyResponses];
+
+export type UnsubscribePushData = {
+    body: PushEndpoint;
+    path?: never;
+    query?: never;
+    url: '/api/push/subscriptions';
+};
+
+export type UnsubscribePushErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type UnsubscribePushError = UnsubscribePushErrors[keyof UnsubscribePushErrors];
+
+export type UnsubscribePushResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type UnsubscribePushResponse = UnsubscribePushResponses[keyof UnsubscribePushResponses];
+
+export type SubscribePushData = {
+    body: PushSubscriptionIn;
+    path?: never;
+    query?: never;
+    url: '/api/push/subscriptions';
+};
+
+export type SubscribePushErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SubscribePushError = SubscribePushErrors[keyof SubscribePushErrors];
+
+export type SubscribePushResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type SubscribePushResponse = SubscribePushResponses[keyof SubscribePushResponses];

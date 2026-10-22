@@ -19,6 +19,16 @@ class Settings(BaseSettings):
     # the notification and for opening the app from it; without it there are none.
     public_url: str | None = None
 
+    # Web push to browsers (desktop), see scripts/generate-vapid-keys.mjs. Off without keys.
+    vapid_public_key: str | None = None
+    vapid_private_key: SecretStr | None = None
+    # Contact for push services; defaults to public_url.
+    vapid_subject: str | None = None
+
+    @property
+    def web_push_enabled(self) -> bool:
+        return bool(self.vapid_public_key and self.vapid_private_key)
+
     # Login. Without a password the API is open, which is meant for local development only.
     password: SecretStr | None = None
     secret_key: SecretStr | None = None

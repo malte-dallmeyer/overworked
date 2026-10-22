@@ -551,3 +551,7 @@ button.chip[aria-pressed='true'] {
 .notice:empty {
   display: none;
 }
+
+.bell {
+  margin-left: auto;
+}

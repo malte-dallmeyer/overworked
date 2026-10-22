@@ -633,3 +633,24 @@ it('does not extend beyond ten hours of work', async () => {
   await expect.element(screen.getByText('Neuer Feierabend um 18:45')).toBeVisible()
   await expect.element(screen.getByText('Mehr als 10 Stunden erlaubt das Arbeitszeitgesetz nicht.')).toBeVisible()
 })
+
+// --- Web push ---
+
+it('offers the bell when the server has web push, and says when the browser blocks it', async () => {
+  givenCurrentSession(running)
+  worker.use(http.get('/api/push/key', () => HttpResponse.json({ public_key: 'BKey' })))
+  const screen = await render(<App />)
+
+  // The headless test browser denies notifications, like a user who blocked them.
+  const bell = screen.getByRole('button', { name: /Benachrichtigungen sind im Browser blockiert/ })
+  await expect.element(bell).toBeVisible()
+  await expect.element(bell).toBeDisabled()
+})
+
+it('shows no bell without web push', async () => {
+  givenCurrentSession(running)
+  const screen = await render(<App />)
+
+  await expect.element(screen.getByText('Feierabend um 15:30')).toBeVisible()
+  await expect.element(screen.getByRole('button', { name: /Benachrichtigungen/ })).not.toBeInTheDocument()
+})

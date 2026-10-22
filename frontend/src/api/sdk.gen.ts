@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AddPauseData, AddPauseErrors, AddPauseResponses, ChangePauseData, ChangePauseErrors, ChangePauseResponses, ChangeTargetData, ChangeTargetErrors, ChangeTargetResponses, EndSessionData, EndSessionErrors, EndSessionFromNotificationData, EndSessionFromNotificationErrors, EndSessionFromNotificationResponses, EndSessionResponses, GetCurrentSessionData, GetCurrentSessionErrors, GetCurrentSessionResponses, GetQuickTargetsData, GetQuickTargetsErrors, GetQuickTargetsResponses, HealthData, HealthResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, PauseSessionData, PauseSessionErrors, PauseSessionResponses, RemovePauseData, RemovePauseErrors, RemovePauseResponses, ResumeSessionData, ResumeSessionErrors, ResumeSessionResponses, SnoozeSessionData, SnoozeSessionErrors, SnoozeSessionFromNotificationData, SnoozeSessionFromNotificationErrors, SnoozeSessionFromNotificationResponses, SnoozeSessionResponses, StartSessionData, StartSessionErrors, StartSessionResponses, StreamSessionData, StreamSessionErrors, StreamSessionResponses } from './types.gen';
+import type { AddPauseData, AddPauseErrors, AddPauseResponses, ChangePauseData, ChangePauseErrors, ChangePauseResponses, ChangeTargetData, ChangeTargetErrors, ChangeTargetResponses, EndSessionData, EndSessionErrors, EndSessionFromNotificationData, EndSessionFromNotificationErrors, EndSessionFromNotificationResponses, EndSessionResponses, GetCurrentSessionData, GetCurrentSessionErrors, GetCurrentSessionResponses, GetPushKeyData, GetPushKeyErrors, GetPushKeyResponses, GetQuickTargetsData, GetQuickTargetsErrors, GetQuickTargetsResponses, HealthData, HealthResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, PauseSessionData, PauseSessionErrors, PauseSessionResponses, RemovePauseData, RemovePauseErrors, RemovePauseResponses, ResumeSessionData, ResumeSessionErrors, ResumeSessionResponses, SnoozeSessionData, SnoozeSessionErrors, SnoozeSessionFromNotificationData, SnoozeSessionFromNotificationErrors, SnoozeSessionFromNotificationResponses, SnoozeSessionResponses, StartSessionData, StartSessionErrors, StartSessionResponses, StreamSessionData, StreamSessionErrors, StreamSessionResponses, SubscribePushData, SubscribePushErrors, SubscribePushResponses, UnsubscribePushData, UnsubscribePushErrors, UnsubscribePushResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -144,6 +144,37 @@ export const removePause = <ThrowOnError extends boolean = false>(options: Optio
  */
 export const changePause = <ThrowOnError extends boolean = false>(options: Options<ChangePauseData, ThrowOnError>) => (options.client ?? client).put<ChangePauseResponses, ChangePauseErrors, ThrowOnError>({
     url: '/api/session/current/pauses/{pause_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Get Push Key
+ */
+export const getPushKey = <ThrowOnError extends boolean = false>(options?: Options<GetPushKeyData, ThrowOnError>) => (options?.client ?? client).get<GetPushKeyResponses, GetPushKeyErrors, ThrowOnError>({ url: '/api/push/key', ...options });
+
+/**
+ * Unsubscribe Push
+ */
+export const unsubscribePush = <ThrowOnError extends boolean = false>(options: Options<UnsubscribePushData, ThrowOnError>) => (options.client ?? client).delete<UnsubscribePushResponses, UnsubscribePushErrors, ThrowOnError>({
+    url: '/api/push/subscriptions',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Subscribe Push
+ *
+ * Idempotent: a browser that subscribes again just updates its keys.
+ */
+export const subscribePush = <ThrowOnError extends boolean = false>(options: Options<SubscribePushData, ThrowOnError>) => (options.client ?? client).post<SubscribePushResponses, SubscribePushErrors, ThrowOnError>({
+    url: '/api/push/subscriptions',
     ...options,
     headers: {
         'Content-Type': 'application/json',

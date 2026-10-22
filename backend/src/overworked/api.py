@@ -22,6 +22,7 @@ from overworked.models import (
     InvalidStart,
     InvalidTarget,
     Pause,
+    PushSubscription,
     User,
     WorkSession,
 )
@@ -61,6 +62,26 @@ class QuickTargetsOut(BaseModel):
     last: int = Field(description="Target of the last session started: the prefilled value.")
     choices: list[int] = Field(description="Distinct targets of the last starts, shortest first.")
     max_minutes: int = Field(description="Longest target allowed (ArbZG §3).")
+
+
+class PushKeyOut(BaseModel):
+    public_key: str | None = Field(description="VAPID key for PushManager.subscribe(); null: off.")
+
+
+class PushKeys(BaseModel):
+    p256dh: str = Field(max_length=200)
+    auth: str = Field(max_length=100)
+
+
+class PushSubscriptionIn(BaseModel):
+    """As PushSubscription.toJSON() in the browser."""
+
+    endpoint: str = Field(max_length=1000)
+    keys: PushKeys
+
+
+class PushEndpoint(BaseModel):
+    endpoint: str = Field(max_length=1000)
 
 
 class LegalBreakOut(BaseModel):
@@ -245,7 +266,7 @@ def resume_session(db: Db, user: CurrentUser, clock: Now) -> SessionOut:
 def stop_ringing(notifier: Notifier, session: WorkSession) -> None:
     """Takes the alarm off the phone; confirmed in the app, so it must not keep ringing."""
     try:
-        notifier.clear(session.alarm_token)
+        notifier.clear(session.alarm_token, user_id=session.user_id)
     except Exception:
         log.exception("Clearing the alarm of session %s failed", session.id)
 
@@ -370,3 +391,38 @@ def remove_pause(pause_id: int, db: Db, user: CurrentUser) -> SessionOut:
     session.remove_pause(get_pause(session, pause_id))
     db.commit()
     return SessionOut.of(session)
+
+
+# --- Web push: browsers subscribe to get the alarm as a notification ---
+
+
+@router.get("/push/key")
+def get_push_key(request: Request, user: CurrentUser) -> PushKeyOut:
+    return PushKeyOut(public_key=request.app.state.settings.vapid_public_key)
+
+
+@router.post("/push/subscriptions", status_code=status.HTTP_204_NO_CONTENT)
+def subscribe_push(body: PushSubscriptionIn, db: Db, user: CurrentUser) -> Response:
+    """Idempotent: a browser that subscribes again just updates its keys."""
+    subscription = db.scalar(
+        select(PushSubscription).where(PushSubscription.endpoint == body.endpoint)
+    ) or PushSubscription(endpoint=body.endpoint)
+    subscription.user_id = user.id
+    subscription.p256dh = body.keys.p256dh
+    subscription.auth = body.keys.auth
+    db.add(subscription)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete("/push/subscriptions", status_code=status.HTTP_204_NO_CONTENT)
+def unsubscribe_push(body: PushEndpoint, db: Db, user: CurrentUser) -> Response:
+    subscription = db.scalar(
+        select(PushSubscription).where(
+            PushSubscription.endpoint == body.endpoint, PushSubscription.user_id == user.id
+        )
+    )
+    if subscription:
+        db.delete(subscription)
+        db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

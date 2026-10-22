@@ -53,7 +53,14 @@ def send_limit_warning(
     """Separate from the Feierabend alarm (own key), so neither replaces the other."""
     title, message = LIMIT_MESSAGES[warning]
     end = [a for a in alarm_actions(session, public_url) if a.label == "Feierabend"]
-    notifier.send(title, message, key=f"{session.alarm_token}-limit", actions=end, click=public_url)
+    notifier.send(
+        title,
+        message,
+        key=f"{session.alarm_token}-limit",
+        actions=end,
+        click=public_url,
+        user_id=session.user_id,
+    )
 
 
 def send_due_alarms(
@@ -75,6 +82,7 @@ def send_due_alarms(
                         key=session.alarm_token,
                         click=public_url,
                         urgent=False,
+                        user_id=session.user_id,
                     )
                     session.auto_end(now)
                     db.commit()
@@ -85,6 +93,7 @@ def send_due_alarms(
                         key=session.alarm_token,
                         actions=alarm_actions(session, public_url),
                         click=public_url,
+                        user_id=session.user_id,
                     )
                     session.mark_alarm_sent(now)
                     db.commit()

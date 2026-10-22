@@ -83,6 +83,9 @@ Scripts must stay cross-platform (Linux, macOS, Windows): no shell syntax, spawn
 - Vitest Browser Mode `toHaveTextContent(string)` matches the full text, unlike jest-dom.
 - Keep `playwright` in `frontend/` and `@playwright/test` in `e2e/` on the same version (shared browser download),
   and the CI container tag (`mcr.microsoft.com/playwright:v<version>-noble` in `.github/workflows/ci.yml`) with them.
-- PWA: `frontend/public/manifest.webmanifest` and a minimal `sw.js` (registered in production builds
-  only). No offline cache on purpose; the service worker is where web push will arrive.
+- PWA: `frontend/public/manifest.webmanifest` and `sw.js` (registered in production builds only).
+  No offline cache on purpose. The service worker shows web push (payloads from
+  `overworked/push.py`) and runs the notification buttons.
+- Notifications: `CompositeNotifier` sends to ntfy (phone) and `WebPushNotifier` (browsers with the
+  bell on, if VAPID keys are set). The browser's push service is replaced in tests (`push_service`).
 - Dev container: the venv lives at `$UV_PROJECT_ENVIRONMENT` (outside the workspace). There is no display, so headed runs only work on the host.
