@@ -6,7 +6,9 @@ docs/story-map.md. Talk to the user in German.
 ## Layout
 
 - `backend/` – FastAPI, SQLAlchemy, SQLite. Package `overworked` under `src/`.
-- `frontend/` – React + TypeScript (Vite). Built output is served by FastAPI in production.
+- `frontend/` – React + TypeScript (Vite), TanStack Query. Built output is served by FastAPI in production.
+- `openapi.json` – API contract, generated from the backend. `frontend/src/api/` is the client
+  generated from it by hey-api (types, SDK, TanStack Query options). Both are committed; never edit by hand.
 - `e2e/` – Playwright end-to-end tests against the full stack (built frontend served by a real backend, fresh SQLite).
 - `Dockerfile` / `docker-compose.yml` – single container serving both.
 
@@ -21,6 +23,7 @@ which is the documentation, so keep it accurate). Shared helpers (arg parsing vi
 - Frontend: `node scripts/test-frontend.mjs [unit|component] [--watch] [--ui] [--headed] [-- vitest args]`
 - E2E: `node scripts/test-e2e.mjs [--watch] [--headed] [--ui] [--report] [-- playwright args]`
 - New DB migration after changing models: `node scripts/new-migration.mjs "<message>"`
+- After changing the API: `node scripts/generate-api.mjs` (lint fails on drift, so does `test_openapi.py`)
 - Image: `docker compose build`
 
 Scripts must stay cross-platform (Linux, macOS, Windows): no shell syntax, spawn via the helpers.
@@ -43,6 +46,10 @@ Scripts must stay cross-platform (Linux, macOS, Windows): no shell syntax, spawn
 - Schema changes go through Alembic (`backend/src/overworked/migrations/`); the app runs
   `upgrade_to_head()` on startup. `test_migrations.py` fails if models and migrations diverge.
   Migrations must not import app code (UTCDateTime is rendered as `sa.DateTime()`).
+- Operation IDs are the route function names (readable generated client names), so name route
+  functions as verbs (`get_current_session`, `pause_session`).
+- Frontend server state lives in TanStack Query: use the generated `*Options`/`*Mutation` helpers;
+  on mutation errors invalidate the current session (another device may have changed it).
 - The session API returns raw state (`started_at`, `target_minutes`, `paused_seconds`,
   `paused_since`); clients compute end time and countdown (`frontend/src/session.ts`), the
   backend does the same for the alarm (`WorkSession.end_at(now)`). Keep both in sync.

@@ -12,7 +12,9 @@ from overworked.clock import Clock, get_clock
 from overworked.db import get_db
 from overworked.models import User, WorkSession
 
-router = APIRouter(prefix="/api")
+# Operation IDs are the function names, so the generated frontend client gets
+# readable names (startSession instead of start_session_api_session_post).
+router = APIRouter(prefix="/api", generate_unique_id_function=lambda route: route.name)
 
 Db = Annotated[Session, Depends(get_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
@@ -54,7 +56,7 @@ def health() -> dict[str, str]:
 
 
 @router.get("/session/current")
-def current_session(db: Db, user: CurrentUser) -> SessionOut | None:
+def get_current_session(db: Db, user: CurrentUser) -> SessionOut | None:
     session = find_active(db, user)
     return SessionOut.of(session) if session else None
 

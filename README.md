@@ -61,6 +61,7 @@ Linux, macOS und Windows. Jedes Skript beschreibt sich selbst: `node scripts/<na
 | `node scripts/test-all.mjs` | Alle Tests einmal |
 | `node scripts/lint.mjs` | Ruff, oxlint und Typecheck |
 | `node scripts/new-migration.mjs "<Beschreibung>"` | Datenbank-Migration aus geänderten Modellen erzeugen |
+| `node scripts/generate-api.mjs [--check]` | `openapi.json` und den Frontend-API-Client nach API-Änderungen neu erzeugen |
 
 Optionen nach `--` gehen an das Test-Tool, z. B. `node scripts/test-backend.mjs unit -- -k alarm`.
 

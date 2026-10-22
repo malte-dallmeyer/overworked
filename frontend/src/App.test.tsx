@@ -1,8 +1,8 @@
 import { http, HttpResponse } from 'msw'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { userEvent } from 'vitest/browser'
-import { render } from 'vitest-browser-react'
 import App from './App'
+import { renderWithQueryClient as render } from './test/render'
 import { worker } from './test/worker'
 
 // "Now" is 11:00Z = 13:00 in Berlin. Ends 13:30Z = 15:30 Berlin.
@@ -115,4 +115,26 @@ it('resumes a paused session', async () => {
 
   await expect.element(screen.getByRole('button', { name: 'Pause' })).toBeVisible()
   await expect.element(screen.getByText('Feierabend um 16:40')).toBeVisible()
+})
+
+it('shows the session another device started in the meantime', async () => {
+  givenCurrentSession(null)
+  worker.use(
+    http.post('/api/session', () => {
+      givenCurrentSession(running)
+      return HttpResponse.json({ detail: 'A session is already running' }, { status: 409 })
+    }),
+  )
+  const screen = await render(<App />)
+
+  await userEvent.click(screen.getByRole('button', { name: 'Start' }))
+
+  await expect.element(screen.getByText('Feierabend um 15:30')).toBeVisible()
+})
+
+it('tells when the server cannot be reached', async () => {
+  worker.use(http.get('/api/session/current', () => HttpResponse.error()))
+  const screen = await render(<App />)
+
+  await expect.element(screen.getByRole('alert')).toHaveTextContent('Server nicht erreichbar.')
 })

@@ -1,56 +1,58 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useState, type FormEvent } from 'react'
+import type { SessionOut } from './api'
 import {
-  endSession,
-  fetchCurrentSession,
-  pauseSession,
-  resumeSession,
-  startSession,
-  type WorkSession,
-} from './api'
+  endSessionMutation,
+  getCurrentSessionOptions,
+  getCurrentSessionQueryKey,
+  pauseSessionMutation,
+  resumeSessionMutation,
+  startSessionMutation,
+} from './api/@tanstack/react-query.gen'
 import { endTime, remainingMs } from './session'
 import { formatClockTime, formatCountdown, formatDuration, parseDuration } from './time'
 import { useNow } from './useNow'
 
-type State = { status: 'loading' } | { status: 'ready'; session: WorkSession | null }
-
 export default function App() {
-  const [state, setState] = useState<State>({ status: 'loading' })
+  const queryClient = useQueryClient()
+  const current = useQuery(getCurrentSessionOptions())
 
-  useEffect(() => {
-    fetchCurrentSession().then((session) => setState({ status: 'ready', session }))
-  }, [])
+  const sessionKey = getCurrentSessionQueryKey()
+  const showSession = (session: SessionOut | null) => queryClient.setQueryData(sessionKey, session)
+  // E.g. another device changed the session in the meantime: show what is true now.
+  const refetch = () => queryClient.invalidateQueries({ queryKey: sessionKey })
+
+  const start = useMutation({ ...startSessionMutation(), onSuccess: showSession, onError: refetch })
+  const pause = useMutation({ ...pauseSessionMutation(), onSuccess: showSession, onError: refetch })
+  const resume = useMutation({ ...resumeSessionMutation(), onSuccess: showSession, onError: refetch })
+  const end = useMutation({ ...endSessionMutation(), onSuccess: () => showSession(null), onError: refetch })
 
   return (
     <main>
       <h1>Feierabend</h1>
-      {state.status === 'loading' ? (
+      {current.isPending ? (
         <p>Lädt…</p>
-      ) : state.session ? (
+      ) : current.isError ? (
+        <p role="alert">Server nicht erreichbar.</p>
+      ) : current.data ? (
         <RunningSession
-          session={state.session}
-          onPause={async () => setState({ status: 'ready', session: await pauseSession() })}
-          onResume={async () => setState({ status: 'ready', session: await resumeSession() })}
-          onEnd={async () => {
-            await endSession()
-            setState({ status: 'ready', session: null })
-          }}
+          session={current.data}
+          onPause={() => pause.mutate({})}
+          onResume={() => resume.mutate({})}
+          onEnd={() => end.mutate({})}
         />
       ) : (
-        <StartForm
-          onStart={async (minutes) => {
-            setState({ status: 'ready', session: await startSession(minutes) })
-          }}
-        />
+        <StartForm onStart={(minutes) => start.mutate({ body: { target_minutes: minutes } })} />
       )}
     </main>
   )
 }
 
-function StartForm({ onStart }: { onStart: (targetMinutes: number) => Promise<void> }) {
+function StartForm({ onStart }: { onStart: (targetMinutes: number) => void }) {
   const [target, setTarget] = useState(formatDuration(8 * 60))
   const [error, setError] = useState<string | null>(null)
 
-  async function submit(event: FormEvent) {
+  function submit(event: FormEvent) {
     event.preventDefault()
     const minutes = parseDuration(target)
     if (minutes === null) {
@@ -58,7 +60,7 @@ function StartForm({ onStart }: { onStart: (targetMinutes: number) => Promise<vo
       return
     }
     setError(null)
-    await onStart(minutes)
+    onStart(minutes)
   }
 
   return (
@@ -82,10 +84,10 @@ function StartForm({ onStart }: { onStart: (targetMinutes: number) => Promise<vo
 }
 
 type RunningSessionProps = {
-  session: WorkSession
-  onPause: () => Promise<void>
-  onResume: () => Promise<void>
-  onEnd: () => Promise<void>
+  session: SessionOut
+  onPause: () => void
+  onResume: () => void
+  onEnd: () => void
 }
 
 function RunningSession({ session, onPause, onResume, onEnd }: RunningSessionProps) {
