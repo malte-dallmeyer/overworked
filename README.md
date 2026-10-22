@@ -12,11 +12,16 @@ Du startest den Timer mit deiner Sollzeit, und sobald sie erreicht ist, klingelt
 
 ```sh
 cp .env.example .env
-# OVERWORKED_NTFY_TOPIC in .env auf einen langen, zufälligen Namen setzen
+# In .env setzen:
+#   OVERWORKED_PASSWORD     dein Login-Passwort
+#   OVERWORKED_SECRET_KEY   z. B. Ausgabe von `openssl rand -hex 32`
+#   OVERWORKED_NTFY_TOPIC   ein langer, zufälliger Name
 docker compose up -d --build
 ```
 
-Die App läuft dann auf <http://localhost:8000>.
+Die App läuft dann auf <http://localhost:8000>. Ohne Passwort startet das Image nicht, damit
+keine Instanz versehentlich ungeschützt im Netz steht. Das Login-Cookie gilt ein Jahr; ein neues
+Passwort oder ein neuer Secret Key meldet alle Geräte ab.
 
 **Handy einrichten:** Installiere die ntfy-App (Android) und abonniere dort dasselbe Topic.
 
@@ -32,7 +37,7 @@ Alle Einstellungen laufen über Umgebungsvariablen mit dem Präfix `OVERWORKED_`
 In VS Code mit der Extension „Dev Containers“: **„Reopen in Container“**. Python, uv, Node,
 alle Abhängigkeiten und der Playwright-Browser werden automatisch eingerichtet; eine `.env`
 wird aus `.env.example` angelegt. Die Datenbank ist eine SQLite-Datei und entsteht beim ersten
-Start unter `backend/data/`.
+Start unter `backend/data/`. Lokal ist der Login aus, solange `OVERWORKED_PASSWORD` leer ist.
 
 Über **Terminal → Run Task…** gibt es Tasks für Backend, Frontend und alle Testarten, jeweils
 im Watch-Modus; „Alle Tests“ ist der Standard-Test-Task.

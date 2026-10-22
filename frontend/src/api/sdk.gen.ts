@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AddPauseData, AddPauseErrors, AddPauseResponses, ChangePauseData, ChangePauseErrors, ChangePauseResponses, EndSessionData, EndSessionResponses, GetCurrentSessionData, GetCurrentSessionResponses, HealthData, HealthResponses, PauseSessionData, PauseSessionResponses, RemovePauseData, RemovePauseErrors, RemovePauseResponses, ResumeSessionData, ResumeSessionResponses, StartSessionData, StartSessionErrors, StartSessionResponses } from './types.gen';
+import type { AddPauseData, AddPauseErrors, AddPauseResponses, ChangePauseData, ChangePauseErrors, ChangePauseResponses, EndSessionData, EndSessionErrors, EndSessionResponses, GetCurrentSessionData, GetCurrentSessionErrors, GetCurrentSessionResponses, HealthData, HealthResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, PauseSessionData, PauseSessionErrors, PauseSessionResponses, RemovePauseData, RemovePauseErrors, RemovePauseResponses, ResumeSessionData, ResumeSessionErrors, ResumeSessionResponses, StartSessionData, StartSessionErrors, StartSessionResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -19,6 +19,23 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 };
 
 /**
+ * Login
+ */
+export const login = <ThrowOnError extends boolean = false>(options: Options<LoginData, ThrowOnError>) => (options.client ?? client).post<LoginResponses, LoginErrors, ThrowOnError>({
+    url: '/api/login',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Logout
+ */
+export const logout = <ThrowOnError extends boolean = false>(options?: Options<LogoutData, ThrowOnError>) => (options?.client ?? client).post<LogoutResponses, unknown, ThrowOnError>({ url: '/api/logout', ...options });
+
+/**
  * Health
  */
 export const health = <ThrowOnError extends boolean = false>(options?: Options<HealthData, ThrowOnError>) => (options?.client ?? client).get<HealthResponses, unknown, ThrowOnError>({ url: '/api/health', ...options });
@@ -26,7 +43,7 @@ export const health = <ThrowOnError extends boolean = false>(options?: Options<H
 /**
  * Get Current Session
  */
-export const getCurrentSession = <ThrowOnError extends boolean = false>(options?: Options<GetCurrentSessionData, ThrowOnError>) => (options?.client ?? client).get<GetCurrentSessionResponses, unknown, ThrowOnError>({ url: '/api/session/current', ...options });
+export const getCurrentSession = <ThrowOnError extends boolean = false>(options?: Options<GetCurrentSessionData, ThrowOnError>) => (options?.client ?? client).get<GetCurrentSessionResponses, GetCurrentSessionErrors, ThrowOnError>({ url: '/api/session/current', ...options });
 
 /**
  * Start Session
@@ -43,17 +60,17 @@ export const startSession = <ThrowOnError extends boolean = false>(options: Opti
 /**
  * Pause Session
  */
-export const pauseSession = <ThrowOnError extends boolean = false>(options?: Options<PauseSessionData, ThrowOnError>) => (options?.client ?? client).post<PauseSessionResponses, unknown, ThrowOnError>({ url: '/api/session/current/pause', ...options });
+export const pauseSession = <ThrowOnError extends boolean = false>(options?: Options<PauseSessionData, ThrowOnError>) => (options?.client ?? client).post<PauseSessionResponses, PauseSessionErrors, ThrowOnError>({ url: '/api/session/current/pause', ...options });
 
 /**
  * Resume Session
  */
-export const resumeSession = <ThrowOnError extends boolean = false>(options?: Options<ResumeSessionData, ThrowOnError>) => (options?.client ?? client).post<ResumeSessionResponses, unknown, ThrowOnError>({ url: '/api/session/current/resume', ...options });
+export const resumeSession = <ThrowOnError extends boolean = false>(options?: Options<ResumeSessionData, ThrowOnError>) => (options?.client ?? client).post<ResumeSessionResponses, ResumeSessionErrors, ThrowOnError>({ url: '/api/session/current/resume', ...options });
 
 /**
  * End Session
  */
-export const endSession = <ThrowOnError extends boolean = false>(options?: Options<EndSessionData, ThrowOnError>) => (options?.client ?? client).post<EndSessionResponses, unknown, ThrowOnError>({ url: '/api/session/current/end', ...options });
+export const endSession = <ThrowOnError extends boolean = false>(options?: Options<EndSessionData, ThrowOnError>) => (options?.client ?? client).post<EndSessionResponses, EndSessionErrors, ThrowOnError>({ url: '/api/session/current/end', ...options });
 
 /**
  * Add Pause

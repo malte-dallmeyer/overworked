@@ -1,4 +1,5 @@
 import { test as base, type APIRequestContext } from '@playwright/test'
+import { AUTH_STATE } from '../playwright.config'
 
 export { expect } from '@playwright/test'
 
@@ -30,9 +31,11 @@ export function clockTime(date: Date): string {
 
 export const test = base.extend<{ noRunningSession: void }>({
   noRunningSession: [
-    async ({ request }, use) => {
-      // 404 just means nothing was running.
-      await request.post('/api/session/current/end')
+    async ({ playwright, baseURL }, use) => {
+      // Logged in even where the test itself is not. 404 just means nothing was running.
+      const api = await playwright.request.newContext({ baseURL, storageState: AUTH_STATE })
+      await api.post('/api/session/current/end')
+      await api.dispose()
       await use()
     },
     { auto: true },

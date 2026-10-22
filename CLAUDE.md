@@ -40,7 +40,13 @@ Scripts must stay cross-platform (Linux, macOS, Windows): no shell syntax, spawn
     They share one server and one user, so they run serially and reset state via the API.
   - Time is injected (`clock` in the backend, fake `Date` in Vitest); never read the wall clock in tested code paths.
 - Every table carries `user_id`. Authentication lives only in `overworked/auth.py`
-  (`get_current_user()`, currently a fixed single user).
+  (`get_current_user()`, `login`/`logout`; currently a single user with a password from
+  `OVERWORKED_PASSWORD` and an HMAC-signed, Secure, HttpOnly cookie). Without a password the API
+  is open (local dev); the Docker image sets `OVERWORKED_REQUIRE_PASSWORD` and refuses to start
+  without one. E2E runs with a password: the `login` setup project stores the cookie in
+  `e2e/.tmp/auth.json`, every test starts logged in.
+- The generated client throws only the response body; `frontend/src/apiError.ts` wraps it in
+  `ApiError` with the status. A 401 shows the login form.
 - No secrets in the repo. Configuration via `OVERWORKED_*` env vars; document new ones in `.env.example`.
 - All timestamps are UTC and set by the server.
 - Schema changes go through Alembic (`backend/src/overworked/migrations/`); the app runs

@@ -179,7 +179,8 @@ button.icon-button:hover {
 
 /* --- Start --- */
 
-.start {
+.start,
+.login {
   display: grid;
   gap: 0.85rem;
 }

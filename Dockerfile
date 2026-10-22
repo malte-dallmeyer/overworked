@@ -21,6 +21,7 @@ RUN useradd --system --uid 1000 app && mkdir /data && chown app /data
 USER app
 ENV PATH="/app/.venv/bin:$PATH" \
     OVERWORKED_STATIC_DIR=/app/static \
+    OVERWORKED_REQUIRE_PASSWORD=true \
     OVERWORKED_DATABASE_URL=sqlite:////data/overworked.db
 VOLUME /data
 EXPOSE 8000

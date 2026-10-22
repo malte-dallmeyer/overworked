@@ -49,7 +49,9 @@ def settings(tmp_path) -> Settings:
 
 @pytest.fixture
 def app(settings, clock, notifier):
-    return create_app(settings, clock=clock, notifier=notifier, run_alarm_loop=False)
+    return create_app(
+        settings, clock=clock, notifier=notifier, run_alarm_loop=False, login_delay_seconds=0
+    )
 
 
 @pytest.fixture

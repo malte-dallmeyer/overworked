@@ -7,6 +7,8 @@ import {
   resumeSessionMutation,
   startSessionMutation,
 } from './api/@tanstack/react-query.gen'
+import { isUnauthorized } from './apiError'
+import { LoginForm } from './LoginForm'
 import { Logo } from './Logo'
 import { RunningSession } from './RunningSession'
 import { StartForm } from './StartForm'
@@ -32,6 +34,10 @@ export default function App() {
         {current.isPending ? (
           <Morning>
             <p className="muted">Lädt…</p>
+          </Morning>
+        ) : current.isError && isUnauthorized(current.error) ? (
+          <Morning>
+            <LoginForm onLoggedIn={cache.refetch} />
           </Morning>
         ) : current.isError ? (
           <Morning>

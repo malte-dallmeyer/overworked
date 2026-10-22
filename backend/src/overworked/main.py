@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import sessionmaker
 
-from overworked import api
+from overworked import api, auth
 from overworked.alarm import alarm_loop
 from overworked.auth import ensure_single_user
 from overworked.clock import Clock, utc_now
@@ -28,6 +28,7 @@ def create_app(
     clock: Clock = utc_now,
     notifier: Notifier | None = None,
     run_alarm_loop: bool = True,
+    login_delay_seconds: float = 1,
 ) -> FastAPI:
     settings = settings or Settings()
     engine = make_engine(settings.database_url)
@@ -52,9 +53,12 @@ def create_app(
         engine.dispose()
 
     app = FastAPI(title="Overworked", lifespan=lifespan)
+    app.state.settings = settings
     app.state.session_factory = session_factory
     app.state.clock = clock
     app.state.notifier = notifier
+    app.state.login_delay_seconds = login_delay_seconds
+    app.include_router(auth.router)
     app.include_router(api.router)
 
     if settings.static_dir and Path(settings.static_dir).is_dir():

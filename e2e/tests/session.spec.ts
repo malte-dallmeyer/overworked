@@ -1,4 +1,5 @@
 import { devices } from '@playwright/test'
+import { AUTH_STATE } from '../playwright.config'
 import { clockTime, currentSession, expect, plannedEnd, test } from './fixtures'
 
 test('start a session and see when work ends', async ({ page, request }) => {
@@ -37,8 +38,8 @@ test('ending the session offers a new start', async ({ page, request }) => {
 
 test('a session started on the laptop shows up on the phone', async ({ browser }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'brings its own devices, one run is enough')
-  const laptopContext = await browser.newContext({ ...devices['Desktop Chrome'] })
-  const phoneContext = await browser.newContext({ ...devices['Pixel 7'] })
+  const laptopContext = await browser.newContext({ ...devices['Desktop Chrome'], storageState: AUTH_STATE })
+  const phoneContext = await browser.newContext({ ...devices['Pixel 7'], storageState: AUTH_STATE })
   const laptop = await laptopContext.newPage()
   const phone = await phoneContext.newPage()
 
@@ -70,8 +71,8 @@ test('pause and resume', async ({ page }) => {
 
 test('paused on the phone, the laptop shows the same time left', async ({ browser }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop', 'brings its own devices, one run is enough')
-  const laptopContext = await browser.newContext({ ...devices['Desktop Chrome'] })
-  const phoneContext = await browser.newContext({ ...devices['Pixel 7'] })
+  const laptopContext = await browser.newContext({ ...devices['Desktop Chrome'], storageState: AUTH_STATE })
+  const phoneContext = await browser.newContext({ ...devices['Pixel 7'], storageState: AUTH_STATE })
   const laptop = await laptopContext.newPage()
   const phone = await phoneContext.newPage()
 

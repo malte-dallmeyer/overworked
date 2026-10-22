@@ -13,6 +13,8 @@ def test_operations_are_named_after_their_functions():
 
     assert operation_ids == {
         "health",
+        "login",
+        "logout",
         "get_current_session",
         "start_session",
         "pause_session",

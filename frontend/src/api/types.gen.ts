@@ -15,6 +15,16 @@ export type HttpValidationError = {
 };
 
 /**
+ * LoginIn
+ */
+export type LoginIn = {
+    /**
+     * Password
+     */
+    password: string;
+};
+
+/**
  * PauseIn
  */
 export type PauseIn = {
@@ -120,6 +130,51 @@ export type ValidationError = {
     };
 };
 
+export type LoginData = {
+    body: LoginIn;
+    path?: never;
+    query?: never;
+    url: '/api/login';
+};
+
+export type LoginErrors = {
+    /**
+     * Wrong password
+     */
+    401: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type LoginError = LoginErrors[keyof LoginErrors];
+
+export type LoginResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type LoginResponse = LoginResponses[keyof LoginResponses];
+
+export type LogoutData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/logout';
+};
+
+export type LogoutResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type LogoutResponse = LogoutResponses[keyof LogoutResponses];
+
 export type HealthData = {
     body?: never;
     path?: never;
@@ -146,6 +201,15 @@ export type GetCurrentSessionData = {
     query?: never;
     url: '/api/session/current';
 };
+
+export type GetCurrentSessionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetCurrentSessionError = GetCurrentSessionErrors[keyof GetCurrentSessionErrors];
 
 export type GetCurrentSessionResponses = {
     /**
@@ -190,6 +254,15 @@ export type PauseSessionData = {
     url: '/api/session/current/pause';
 };
 
+export type PauseSessionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PauseSessionError = PauseSessionErrors[keyof PauseSessionErrors];
+
 export type PauseSessionResponses = {
     /**
      * Successful Response
@@ -206,6 +279,15 @@ export type ResumeSessionData = {
     url: '/api/session/current/resume';
 };
 
+export type ResumeSessionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ResumeSessionError = ResumeSessionErrors[keyof ResumeSessionErrors];
+
 export type ResumeSessionResponses = {
     /**
      * Successful Response
@@ -221,6 +303,15 @@ export type EndSessionData = {
     query?: never;
     url: '/api/session/current/end';
 };
+
+export type EndSessionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type EndSessionError = EndSessionErrors[keyof EndSessionErrors];
 
 export type EndSessionResponses = {
     /**

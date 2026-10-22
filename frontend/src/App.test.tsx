@@ -370,3 +370,64 @@ it('drops the hint once the legal break is taken', async () => {
   await expect.element(screen.getByText('Feierabend um 16:00')).toBeVisible()
   await expect.element(screen.getByText(/Pflichtpause/)).not.toBeInTheDocument()
 })
+
+// --- Login ---
+
+function givenLoggedOut() {
+  worker.use(
+    http.get('/api/session/current', () => HttpResponse.json({ detail: 'Not logged in' }, { status: 401 })),
+  )
+}
+
+it('asks for the password when not logged in', async () => {
+  givenLoggedOut()
+  const screen = await render(<App />)
+
+  await expect.element(screen.getByLabelText('Passwort')).toBeVisible()
+  await expect.element(screen.getByRole('button', { name: 'Anmelden' })).toBeVisible()
+})
+
+it('logs in and shows the running session', async () => {
+  givenLoggedOut()
+  let sent: unknown
+  worker.use(
+    http.post('/api/login', async ({ request }) => {
+      sent = await request.json()
+      givenCurrentSession(running)
+      return new HttpResponse(null, { status: 204 })
+    }),
+  )
+  const screen = await render(<App />)
+
+  await userEvent.fill(screen.getByLabelText('Passwort'), 'geheim')
+  await userEvent.click(screen.getByRole('button', { name: 'Anmelden' }))
+
+  await expect.element(screen.getByText('Feierabend um 15:30')).toBeVisible()
+  expect(sent).toEqual({ password: 'geheim' })
+})
+
+it('tells when the password is wrong', async () => {
+  givenLoggedOut()
+  worker.use(http.post('/api/login', () => HttpResponse.json({ detail: 'Wrong password' }, { status: 401 })))
+  const screen = await render(<App />)
+
+  await userEvent.fill(screen.getByLabelText('Passwort'), 'falsch')
+  await userEvent.click(screen.getByRole('button', { name: 'Anmelden' }))
+
+  await expect.element(screen.getByRole('alert')).toHaveTextContent('Falsches Passwort.')
+})
+
+it('asks for the password again once the login has expired', async () => {
+  givenCurrentSession(running)
+  worker.use(
+    http.post('/api/session/current/pause', () => {
+      givenLoggedOut()
+      return HttpResponse.json({ detail: 'Not logged in' }, { status: 401 })
+    }),
+  )
+  const screen = await render(<App />)
+
+  await userEvent.click(screen.getByRole('button', { name: 'Pause' }))
+
+  await expect.element(screen.getByLabelText('Passwort')).toBeVisible()
+})
