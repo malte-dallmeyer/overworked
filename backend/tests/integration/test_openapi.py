@@ -16,6 +16,7 @@ def test_operations_are_named_after_their_functions():
         "login",
         "logout",
         "get_current_session",
+        "stream_session",
         "start_session",
         "pause_session",
         "resume_session",

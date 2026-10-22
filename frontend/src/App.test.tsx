@@ -1,4 +1,4 @@
-import { http, HttpResponse } from 'msw'
+import { http, HttpResponse, sse } from 'msw'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { userEvent } from 'vitest/browser'
 import App from './App'
@@ -489,4 +489,27 @@ it('offers no second snooze', async () => {
 
   await expect.element(screen.getByText('Feierabend!')).toBeVisible()
   await expect.element(screen.getByRole('button', { name: '10 min später' })).not.toBeInTheDocument()
+})
+
+// --- Live updates from other devices ---
+
+it('shows what another device changed, without reloading', async () => {
+  givenCurrentSession(running)
+  worker.use(
+    sse('/api/session/events', ({ client }) => {
+      client.send({ data: JSON.stringify(running) })
+      setTimeout(() => client.send({ data: JSON.stringify(paused) }), 50)
+    }),
+  )
+  const screen = await render(<App />)
+
+  await expect.element(screen.getByText('Pausiert seit 12:00')).toBeVisible()
+})
+
+it('shows the start screen once another device ended the session', async () => {
+  givenCurrentSession(running)
+  worker.use(sse('/api/session/events', ({ client }) => client.send({ data: 'null' })))
+  const screen = await render(<App />)
+
+  await expect.element(screen.getByRole('button', { name: 'Jetzt starten' })).toBeVisible()
 })

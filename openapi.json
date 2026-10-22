@@ -108,6 +108,31 @@
         }
       }
     },
+    "/api/session/events": {
+      "get": {
+        "summary": "Stream Session",
+        "description": "Server-sent events: the current session (as from GET /session/current) right away and\nwhenever it changes, from any device or the alarm. Commands stay plain requests.",
+        "operationId": "stream_session",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/event-stream": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/session": {
       "post": {
         "summary": "Start Session",

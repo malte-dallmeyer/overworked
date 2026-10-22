@@ -34,7 +34,7 @@ export default defineConfig({
     command: [
       `rm -f ${DB}`,
       'npm --prefix ../frontend run build',
-      `cd ../backend && uv run uvicorn overworked.main:create_app --factory --port ${PORT}`,
+      `cd ../backend && uv run uvicorn overworked.main:create_app --factory --port ${PORT} --timeout-graceful-shutdown 1`,
     ].join(' && '),
     env: {
       OVERWORKED_STATIC_DIR: '../frontend/dist',

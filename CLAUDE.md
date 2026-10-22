@@ -49,6 +49,11 @@ Scripts must stay cross-platform (Linux, macOS, Windows): no shell syntax, spawn
   is open (local dev); the Docker image sets `OVERWORKED_REQUIRE_PASSWORD` and refuses to start
   without one. E2E runs with a password: the `login` setup project stores the cookie in
   `e2e/.tmp/auth.json`, every test starts logged in.
+- Live sync: `GET /api/session/events` (server-sent events) sends the current session whenever it
+  changes; it polls the DB every second (`overworked/events.py`), so changes from any route or the
+  alarm loop show up without explicit notifications. The frontend writes them into the query cache
+  (`useLiveUpdates`). Uvicorn runs with `--timeout-graceful-shutdown`, since open streams never end.
+  Component tests get a silent stream by default (`src/test/worker.ts`); override it with `sse()`.
 - The generated client throws only the response body; `frontend/src/apiError.ts` wraps it in
   `ApiError` with the status. A 401 shows the login form.
 - No secrets in the repo. Configuration via `OVERWORKED_*` env vars; document new ones in `.env.example`.

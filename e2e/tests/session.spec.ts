@@ -43,14 +43,15 @@ test('a session started on the laptop shows up on the phone', async ({ browser }
   const laptop = await laptopContext.newPage()
   const phone = await phoneContext.newPage()
 
+  await phone.goto('/')
+  await expect(phone.getByRole('button', { name: 'Jetzt starten' })).toBeVisible()
   await laptop.goto('/')
   await laptop.getByLabel('Sollzeit', { exact: true }).fill('8:00')
   await laptop.getByRole('button', { name: 'Jetzt starten' }).click()
   const endTime = laptop.getByText(/^Feierabend um \d\d:\d\d$/)
   await expect(endTime).toBeVisible()
 
-  await phone.goto('/')
-
+  // Live, without reloading the phone.
   await expect(phone.getByText(await endTime.innerText())).toBeVisible()
 
   await laptopContext.close()
@@ -86,8 +87,7 @@ test('paused on the phone, the laptop shows the same time left', async ({ browse
   const phoneRemaining = phone.getByText(/^\d+:\d\d$/)
   await expect(phone.getByText(/^Pausiert seit/)).toBeVisible()
 
-  await laptop.reload()
-
+  // Live, without reloading the laptop.
   await expect(laptop.getByText(/^Pausiert seit/)).toBeVisible()
   await expect(laptop.getByText(await phoneRemaining.innerText())).toBeVisible()
 

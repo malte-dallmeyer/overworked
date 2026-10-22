@@ -13,12 +13,15 @@ import { LoginForm } from './LoginForm'
 import { Logo } from './Logo'
 import { RunningSession } from './RunningSession'
 import { StartForm } from './StartForm'
+import { useLiveUpdates } from './useLiveUpdates'
 import { useSessionCache } from './useSessionCache'
 import { useSky } from './useSky'
 
 export default function App() {
   const current = useQuery(getCurrentSessionOptions())
   const cache = useSessionCache()
+  // Only once logged in; otherwise the stream would be refused and retried over and over.
+  useLiveUpdates(current.isSuccess)
 
   const start = useMutation({ ...startSessionMutation(), onSuccess: cache.show, onError: cache.refetch })
   const pause = useMutation({ ...pauseSessionMutation(), onSuccess: cache.show, onError: cache.refetch })

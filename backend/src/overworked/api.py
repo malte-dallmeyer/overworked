@@ -1,8 +1,10 @@
+import asyncio
 import logging
 from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import StreamingResponse
 from pydantic import AwareDatetime, BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -11,6 +13,7 @@ from sqlalchemy.orm import Session
 from overworked.auth import get_current_user
 from overworked.clock import Clock, get_clock
 from overworked.db import get_db
+from overworked.events import changes
 from overworked.models import (
     CannotSnooze,
     InvalidPause,
@@ -86,8 +89,12 @@ class SessionOut(BaseModel):
 
 
 def find_active(db: Session, user: User) -> WorkSession | None:
+    return find_active_of(db, user.id)
+
+
+def find_active_of(db: Session, user_id: int) -> WorkSession | None:
     return db.scalar(
-        select(WorkSession).where(WorkSession.user_id == user.id, WorkSession.ended_at.is_(None))
+        select(WorkSession).where(WorkSession.user_id == user_id, WorkSession.ended_at.is_(None))
     )
 
 
@@ -100,6 +107,40 @@ def health() -> dict[str, str]:
 def get_current_session(db: Db, user: CurrentUser) -> SessionOut | None:
     session = find_active(db, user)
     return SessionOut.of(session) if session else None
+
+
+@router.get(
+    "/session/events",
+    response_class=StreamingResponse,
+    responses={200: {"content": {"text/event-stream": {}}}},
+)
+async def stream_session(request: Request, db: Db, user: CurrentUser) -> StreamingResponse:
+    """Server-sent events: the current session (as from GET /session/current) right away and
+    whenever it changes, from any device or the alarm. Commands stay plain requests."""
+    user_id = user.id
+    # The stream stays open for long; don't hold a pooled connection for it.
+    db.close()
+    session_factory = request.app.state.session_factory
+    poll_seconds = request.app.state.events_poll_seconds
+
+    def load_now() -> str:
+        with session_factory() as fresh:
+            session = find_active_of(fresh, user_id)
+            return SessionOut.of(session).model_dump_json() if session else "null"
+
+    async def load() -> str:
+        return await asyncio.to_thread(load_now)
+
+    async def wait() -> None:
+        await asyncio.sleep(poll_seconds)
+
+    async def stream():
+        async for state in changes(load, wait):
+            yield f"data: {state}\n\n" if state is not None else ": keepalive\n\n"
+
+    return StreamingResponse(
+        stream(), media_type="text/event-stream", headers={"Cache-Control": "no-cache"}
+    )
 
 
 @router.post("/session", status_code=status.HTTP_201_CREATED)

@@ -228,6 +228,29 @@ export type GetCurrentSessionResponses = {
 
 export type GetCurrentSessionResponse = GetCurrentSessionResponses[keyof GetCurrentSessionResponses];
 
+export type StreamSessionData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/session/events';
+};
+
+export type StreamSessionErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type StreamSessionError = StreamSessionErrors[keyof StreamSessionErrors];
+
+export type StreamSessionResponses = {
+    /**
+     * Successful Response
+     */
+    200: unknown;
+};
+
 export type StartSessionData = {
     body: StartSession;
     path?: never;

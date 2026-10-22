@@ -29,6 +29,7 @@ def create_app(
     notifier: Notifier | None = None,
     run_alarm_loop: bool = True,
     login_delay_seconds: float = 1,
+    events_poll_seconds: float = 1,
 ) -> FastAPI:
     settings = settings or Settings()
     engine = make_engine(settings.database_url)
@@ -64,6 +65,7 @@ def create_app(
     app.state.clock = clock
     app.state.notifier = notifier
     app.state.login_delay_seconds = login_delay_seconds
+    app.state.events_poll_seconds = events_poll_seconds
     app.include_router(auth.router)
     app.include_router(api.router)
 

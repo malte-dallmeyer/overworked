@@ -15,6 +15,11 @@ const { passthrough } = parseCli(import.meta.url)
 const envFile = existsSync(join(ROOT, '.env')) ? ['--env-file', '../.env'] : []
 await exec(
   'uv',
-  ['run', ...envFile, 'uvicorn', 'overworked.main:create_app', '--factory', '--reload', ...passthrough],
+  [
+    ...['run', ...envFile, 'uvicorn', 'overworked.main:create_app', '--factory', '--reload'],
+    // Open live-update streams (server-sent events) would otherwise block every reload.
+    ...['--timeout-graceful-shutdown', '1'],
+    ...passthrough,
+  ],
   { cwd: join(ROOT, 'backend') },
 )
