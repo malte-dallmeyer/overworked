@@ -9,16 +9,20 @@ import { worker } from './test/worker'
 const running = {
   started_at: '2026-10-22T06:00:00Z',
   target_minutes: 450,
-  paused_seconds: 0,
-  paused_since: null,
+  pauses: [],
 }
+
+const earlierPause = { id: 1, started_at: '2026-10-22T07:00:00Z', ended_at: '2026-10-22T07:10:00Z' }
 
 // Paused at 10:00Z after an earlier 10-minute pause: 3:50 h worked, 3:40 h left.
 const paused = {
   ...running,
-  paused_seconds: 10 * 60,
-  paused_since: '2026-10-22T10:00:00Z',
+  pauses: [earlierPause, { id: 2, started_at: '2026-10-22T10:00:00Z', ended_at: null }],
 }
+
+// Lunch planned 14:00–14:45 Berlin: ends 16:15 Berlin.
+const lunch = { id: 3, started_at: '2026-10-22T12:00:00Z', ended_at: '2026-10-22T12:45:00Z' }
+const withPlannedLunch = { ...running, pauses: [lunch] }
 
 beforeEach(() => {
   vi.useFakeTimers({ toFake: ['Date'] })
@@ -106,7 +110,10 @@ it('resumes a paused session', async () => {
   givenCurrentSession(paused)
   worker.use(
     http.post('/api/session/current/resume', () =>
-      HttpResponse.json({ ...running, paused_seconds: 70 * 60 }),
+      HttpResponse.json({
+        ...running,
+        pauses: [earlierPause, { id: 2, started_at: '2026-10-22T10:00:00Z', ended_at: '2026-10-22T11:00:00Z' }],
+      }),
     ),
   )
   const screen = await render(<App />)
@@ -181,4 +188,99 @@ it('asks for a start time before starting with it', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Mit dieser Startzeit starten' }))
 
   await expect.element(screen.getByRole('alert')).toHaveTextContent('Bitte eine Uhrzeit eingeben')
+})
+
+// --- Pause form ---
+
+function capture(method: 'post' | 'put' | 'delete', path: string, response: object) {
+  const calls: { body: unknown; url: string }[] = []
+  worker.use(
+    http[method](path, async ({ request }) => {
+      calls.push({ url: request.url, body: method === 'delete' ? null : await request.json() })
+      return HttpResponse.json(response, { status: method === 'post' ? 201 : 200 })
+    }),
+  )
+  return calls
+}
+
+it('lists planned pauses and includes them in the end time', async () => {
+  givenCurrentSession(withPlannedLunch)
+  const screen = await render(<App />)
+
+  await expect.element(screen.getByText('14:00–14:45 (geplant)')).toBeVisible()
+  await expect.element(screen.getByText('Feierabend um 16:15')).toBeVisible()
+})
+
+it('plans a pause ahead', async () => {
+  givenCurrentSession(running)
+  const calls = capture('post', '/api/session/current/pauses', withPlannedLunch)
+  const screen = await render(<App />)
+
+  await userEvent.fill(screen.getByLabelText('Pause von'), '14:00')
+  await userEvent.fill(screen.getByLabelText('Pause bis'), '14:45')
+  await userEvent.click(screen.getByRole('button', { name: 'Pause eintragen' }))
+
+  await expect.element(screen.getByText('Feierabend um 16:15')).toBeVisible()
+  expect(calls[0].body).toEqual({
+    started_at: '2026-10-22T12:00:00.000Z',
+    ended_at: '2026-10-22T12:45:00.000Z',
+  })
+})
+
+it('corrects a pause', async () => {
+  givenCurrentSession(withPlannedLunch)
+  const longerLunch = { ...lunch, ended_at: '2026-10-22T13:00:00Z' }
+  const calls = capture('put', '/api/session/current/pauses/:id', { ...running, pauses: [longerLunch] })
+  const screen = await render(<App />)
+
+  await userEvent.click(screen.getByRole('button', { name: 'Pause 14:00–14:45 bearbeiten' }))
+  await expect.element(screen.getByLabelText('Pause von')).toHaveValue('14:00')
+  await userEvent.fill(screen.getByLabelText('Pause bis'), '15:00')
+  await userEvent.click(screen.getByRole('button', { name: 'Änderung speichern' }))
+
+  await expect.element(screen.getByText('14:00–15:00 (geplant)')).toBeVisible()
+  expect(calls[0].url).toMatch(/\/pauses\/3$/)
+  expect(calls[0].body).toEqual({
+    started_at: '2026-10-22T12:00:00.000Z',
+    ended_at: '2026-10-22T13:00:00.000Z',
+  })
+})
+
+it('deletes a pause', async () => {
+  givenCurrentSession(withPlannedLunch)
+  const calls = capture('delete', '/api/session/current/pauses/:id', running)
+  const screen = await render(<App />)
+
+  await userEvent.click(screen.getByRole('button', { name: 'Pause 14:00–14:45 löschen' }))
+
+  await expect.element(screen.getByText('Feierabend um 15:30')).toBeVisible()
+  expect(calls[0].url).toMatch(/\/pauses\/3$/)
+})
+
+it('explains a rejected pause', async () => {
+  givenCurrentSession(withPlannedLunch)
+  worker.use(
+    http.post('/api/session/current/pauses', () =>
+      HttpResponse.json({ detail: 'pause overlaps another pause' }, { status: 422 }),
+    ),
+  )
+  const screen = await render(<App />)
+
+  await userEvent.fill(screen.getByLabelText('Pause von'), '14:30')
+  await userEvent.fill(screen.getByLabelText('Pause bis'), '15:00')
+  await userEvent.click(screen.getByRole('button', { name: 'Pause eintragen' }))
+
+  await expect
+    .element(screen.getByRole('alert'))
+    .toHaveTextContent('Die Pause überschneidet sich mit einer anderen oder liegt vor Arbeitsbeginn.')
+})
+
+it('asks for both times of a pause', async () => {
+  givenCurrentSession(running)
+  const screen = await render(<App />)
+
+  await userEvent.fill(screen.getByLabelText('Pause von'), '14:00')
+  await userEvent.click(screen.getByRole('button', { name: 'Pause eintragen' }))
+
+  await expect.element(screen.getByRole('alert')).toHaveTextContent('Bitte Beginn und Ende der Pause eingeben')
 })

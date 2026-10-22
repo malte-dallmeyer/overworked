@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { endSession, getCurrentSession, health, type Options, pauseSession, resumeSession, startSession } from '../sdk.gen';
-import type { EndSessionData, EndSessionResponse, GetCurrentSessionData, GetCurrentSessionResponse, HealthData, HealthResponse, PauseSessionData, PauseSessionResponse, ResumeSessionData, ResumeSessionResponse, StartSessionData, StartSessionError, StartSessionResponse } from '../types.gen';
+import { addPause, changePause, endSession, getCurrentSession, health, type Options, pauseSession, removePause, resumeSession, startSession } from '../sdk.gen';
+import type { AddPauseData, AddPauseError, AddPauseResponse, ChangePauseData, ChangePauseError, ChangePauseResponse, EndSessionData, EndSessionResponse, GetCurrentSessionData, GetCurrentSessionResponse, HealthData, HealthResponse, PauseSessionData, PauseSessionResponse, RemovePauseData, RemovePauseError, RemovePauseResponse, ResumeSessionData, ResumeSessionResponse, StartSessionData, StartSessionError, StartSessionResponse } from '../types.gen';
 
 export type QueryKey<TOptions extends Options> = [
     Pick<TOptions, 'baseUrl' | 'body' | 'headers' | 'path' | 'query'> & {
@@ -133,6 +133,59 @@ export const endSessionMutation = (options?: Partial<Options<EndSessionData>>): 
     const mutationOptions: UseMutationOptions<EndSessionResponse, DefaultError, Options<EndSessionData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await endSession({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Add Pause
+ *
+ * Adds a pause with start and end: forgotten earlier or planned ahead.
+ */
+export const addPauseMutation = (options?: Partial<Options<AddPauseData>>): UseMutationOptions<AddPauseResponse, AddPauseError, Options<AddPauseData>> => {
+    const mutationOptions: UseMutationOptions<AddPauseResponse, AddPauseError, Options<AddPauseData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await addPause({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Remove Pause
+ */
+export const removePauseMutation = (options?: Partial<Options<RemovePauseData>>): UseMutationOptions<RemovePauseResponse, RemovePauseError, Options<RemovePauseData>> => {
+    const mutationOptions: UseMutationOptions<RemovePauseResponse, RemovePauseError, Options<RemovePauseData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await removePause({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Change Pause
+ */
+export const changePauseMutation = (options?: Partial<Options<ChangePauseData>>): UseMutationOptions<ChangePauseResponse, ChangePauseError, Options<ChangePauseData>> => {
+    const mutationOptions: UseMutationOptions<ChangePauseResponse, ChangePauseError, Options<ChangePauseData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await changePause({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

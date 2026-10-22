@@ -19,8 +19,7 @@ def test_starting_a_session_returns_it(client):
     assert response.json() == {
         "started_at": "2026-10-22T08:00:00Z",
         "target_minutes": 450,
-        "paused_seconds": 0,
-        "paused_since": None,
+        "pauses": [],
     }
 
 
@@ -70,6 +69,10 @@ def test_rejects_implausible_target(client):
 # --- Pauses ---
 
 
+def pauses_of(response):
+    return [(p["started_at"], p["ended_at"]) for p in response.json()["pauses"]]
+
+
 def pause(client):
     return client.post("/api/session/current/pause")
 
@@ -85,7 +88,7 @@ def test_pausing_marks_the_session_as_paused(client, clock):
     response = pause(client)
 
     assert response.status_code == 200
-    assert response.json()["paused_since"] == "2026-10-22T10:00:00Z"
+    assert pauses_of(response) == [("2026-10-22T10:00:00Z", None)]
 
 
 def test_resuming_adds_the_pause_to_the_paused_time(client, clock):
@@ -97,15 +100,14 @@ def test_resuming_adds_the_pause_to_the_paused_time(client, clock):
     response = resume(client)
 
     assert response.status_code == 200
-    assert response.json()["paused_since"] is None
-    assert response.json()["paused_seconds"] == 30 * 60
+    assert pauses_of(response) == [("2026-10-22T10:00:00Z", "2026-10-22T10:30:00Z")]
 
 
 def test_pause_is_visible_on_every_device(client, clock):
     start(client)
     pause(client)
 
-    assert client.get("/api/session/current").json()["paused_since"] is not None
+    assert pauses_of(client.get("/api/session/current")) == [("2026-10-22T08:00:00Z", None)]
 
 
 def test_pausing_twice_keeps_the_first_pause(client, clock):
@@ -117,7 +119,7 @@ def test_pausing_twice_keeps_the_first_pause(client, clock):
     response = pause(client)
 
     assert response.status_code == 200
-    assert response.json()["paused_since"] == "2026-10-22T08:00:00Z"
+    assert pauses_of(response) == [("2026-10-22T08:00:00Z", None)]
 
 
 def test_resuming_a_running_session_changes_nothing(client):
@@ -126,7 +128,7 @@ def test_resuming_a_running_session_changes_nothing(client):
     response = resume(client)
 
     assert response.status_code == 200
-    assert response.json()["paused_since"] is None
+    assert pauses_of(response) == []
 
 
 def test_pausing_without_running_session_is_not_found(client):
@@ -184,3 +186,76 @@ def test_rejects_a_start_without_timezone(client):
     )
 
     assert response.status_code == 422
+
+
+# --- Pauses with start and end ---
+
+
+def add_pause(client, started_at, ended_at):
+    return client.post(
+        "/api/session/current/pauses", json={"started_at": started_at, "ended_at": ended_at}
+    )
+
+
+def test_a_pause_can_be_planned_ahead(client):
+    start(client)
+
+    response = add_pause(client, "2026-10-22T12:00:00Z", "2026-10-22T12:45:00Z")
+
+    assert response.status_code == 201
+    assert pauses_of(response) == [("2026-10-22T12:00:00Z", "2026-10-22T12:45:00Z")]
+
+
+def test_a_pause_can_be_corrected(client):
+    start(client)
+    pause_id = add_pause(client, "2026-10-22T12:00:00Z", "2026-10-22T12:45:00Z").json()["pauses"][
+        0
+    ]["id"]
+
+    response = client.put(
+        f"/api/session/current/pauses/{pause_id}",
+        json={"started_at": "2026-10-22T12:00:00Z", "ended_at": "2026-10-22T13:00:00Z"},
+    )
+
+    assert response.status_code == 200
+    assert pauses_of(response) == [("2026-10-22T12:00:00Z", "2026-10-22T13:00:00Z")]
+
+
+def test_a_pause_can_be_deleted(client):
+    start(client)
+    pause_id = add_pause(client, "2026-10-22T12:00:00Z", "2026-10-22T12:45:00Z").json()["pauses"][
+        0
+    ]["id"]
+
+    response = client.delete(f"/api/session/current/pauses/{pause_id}")
+
+    assert response.status_code == 200
+    assert pauses_of(response) == []
+
+
+def test_rejects_overlapping_pauses(client):
+    start(client)
+    add_pause(client, "2026-10-22T12:00:00Z", "2026-10-22T13:00:00Z")
+
+    response = add_pause(client, "2026-10-22T12:30:00Z", "2026-10-22T13:30:00Z")
+
+    assert response.status_code == 422
+
+
+def test_rejects_a_pause_ending_before_it_starts(client):
+    start(client)
+
+    assert add_pause(client, "2026-10-22T13:00:00Z", "2026-10-22T12:00:00Z").status_code == 422
+
+
+def test_unknown_pause_is_not_found(client):
+    start(client)
+
+    assert client.delete("/api/session/current/pauses/999").status_code == 404
+    assert (
+        client.put(
+            "/api/session/current/pauses/999",
+            json={"started_at": "2026-10-22T12:00:00Z", "ended_at": "2026-10-22T13:00:00Z"},
+        ).status_code
+        == 404
+    )

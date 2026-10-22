@@ -18,6 +18,9 @@ def test_operations_are_named_after_their_functions():
         "pause_session",
         "resume_session",
         "end_session",
+        "add_pause",
+        "change_pause",
+        "remove_pause",
     }
 
 

@@ -15,6 +15,40 @@ export type HttpValidationError = {
 };
 
 /**
+ * PauseIn
+ */
+export type PauseIn = {
+    /**
+     * Started At
+     */
+    started_at: string;
+    /**
+     * Ended At
+     */
+    ended_at: string;
+};
+
+/**
+ * PauseOut
+ */
+export type PauseOut = {
+    /**
+     * Id
+     */
+    id: number;
+    /**
+     * Started At
+     */
+    started_at: string;
+    /**
+     * Ended At
+     *
+     * None while a spontaneous pause is running.
+     */
+    ended_at: string | null;
+};
+
+/**
  * SessionOut
  *
  * Raw state; clients derive end time and countdown from it with their own clock.
@@ -29,13 +63,11 @@ export type SessionOut = {
      */
     target_minutes: number;
     /**
-     * Paused Seconds
+     * Pauses
+     *
+     * Past, running and planned pauses, by start.
      */
-    paused_seconds: number;
-    /**
-     * Paused Since
-     */
-    paused_since: string | null;
+    pauses: Array<PauseOut>;
 };
 
 /**
@@ -192,3 +224,88 @@ export type EndSessionResponses = {
 };
 
 export type EndSessionResponse = EndSessionResponses[keyof EndSessionResponses];
+
+export type AddPauseData = {
+    body: PauseIn;
+    path?: never;
+    query?: never;
+    url: '/api/session/current/pauses';
+};
+
+export type AddPauseErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type AddPauseError = AddPauseErrors[keyof AddPauseErrors];
+
+export type AddPauseResponses = {
+    /**
+     * Successful Response
+     */
+    201: SessionOut;
+};
+
+export type AddPauseResponse = AddPauseResponses[keyof AddPauseResponses];
+
+export type RemovePauseData = {
+    body?: never;
+    path: {
+        /**
+         * Pause Id
+         */
+        pause_id: number;
+    };
+    query?: never;
+    url: '/api/session/current/pauses/{pause_id}';
+};
+
+export type RemovePauseErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RemovePauseError = RemovePauseErrors[keyof RemovePauseErrors];
+
+export type RemovePauseResponses = {
+    /**
+     * Successful Response
+     */
+    200: SessionOut;
+};
+
+export type RemovePauseResponse = RemovePauseResponses[keyof RemovePauseResponses];
+
+export type ChangePauseData = {
+    body: PauseIn;
+    path: {
+        /**
+         * Pause Id
+         */
+        pause_id: number;
+    };
+    query?: never;
+    url: '/api/session/current/pauses/{pause_id}';
+};
+
+export type ChangePauseErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ChangePauseError = ChangePauseErrors[keyof ChangePauseErrors];
+
+export type ChangePauseResponses = {
+    /**
+     * Successful Response
+     */
+    200: SessionOut;
+};
+
+export type ChangePauseResponse = ChangePauseResponses[keyof ChangePauseResponses];

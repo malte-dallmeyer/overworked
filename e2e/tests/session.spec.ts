@@ -58,11 +58,11 @@ test('pause and resume', async ({ page }) => {
   await page.goto('/')
   await page.getByRole('button', { name: 'Jetzt starten' }).click()
 
-  await page.getByRole('button', { name: 'Pause' }).click()
+  await page.getByRole('button', { name: 'Pause', exact: true }).click()
   await expect(page.getByText(/^Pausiert seit \d\d:\d\d$/)).toBeVisible()
 
   await page.getByRole('button', { name: 'Weiter' }).click()
-  await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible()
   await expect(page.getByText(/^Pausiert/)).toBeHidden()
 })
 
@@ -76,7 +76,7 @@ test('paused on the phone, the laptop shows the same time left', async ({ browse
   await laptop.goto('/')
   await laptop.getByRole('button', { name: 'Jetzt starten' }).click()
   await phone.goto('/')
-  await phone.getByRole('button', { name: 'Pause' }).click()
+  await phone.getByRole('button', { name: 'Pause', exact: true }).click()
   // Time left stands still during a pause, so both devices must show exactly the same value.
   const phoneRemaining = phone.getByText(/^noch \d+:\d\d:\d\d$/)
   await expect(phone.getByText(/^Pausiert seit/)).toBeVisible()
@@ -103,4 +103,20 @@ test('forgot to start: start with the time work actually began', async ({ page }
 
   // 8 h target, started 60–61 minutes ago (the start time has minute precision).
   await expect(page.getByText(/^noch (6:5\d|7:00):\d\d$/)).toBeVisible()
+})
+
+test('plan a pause: the end time moves right away', async ({ page, request }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Jetzt starten' }).click()
+  const session = (await currentSession(request))!
+  const pauseStart = new Date(Date.parse(session.started_at) + 2 * 60 * 60_000)
+  const pauseEnd = new Date(pauseStart.getTime() + 30 * 60_000)
+
+  await page.getByLabel('Pause von').fill(clockTime(pauseStart))
+  await page.getByLabel('Pause bis').fill(clockTime(pauseEnd))
+  await page.getByRole('button', { name: 'Pause eintragen' }).click()
+
+  await expect(page.getByText(`${clockTime(pauseStart)}–${clockTime(pauseEnd)} (geplant)`)).toBeVisible()
+  const endWithPause = new Date(plannedEnd(session).getTime() + 30 * 60_000)
+  await expect(page.getByText(`Feierabend um ${clockTime(endWithPause)}`)).toBeVisible()
 })

@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from overworked.auth import get_current_user
 from overworked.clock import Clock, get_clock
 from overworked.db import get_db
-from overworked.models import InvalidStart, User, WorkSession
+from overworked.models import InvalidPause, InvalidStart, Pause, User, WorkSession
 
 # Operation IDs are the function names, so the generated frontend client gets
 # readable names (startSession instead of start_session_api_session_post).
@@ -28,22 +28,33 @@ class StartSession(BaseModel):
     )
 
 
+class PauseIn(BaseModel):
+    started_at: AwareDatetime
+    ended_at: AwareDatetime
+
+
+class PauseOut(BaseModel):
+    id: int
+    started_at: datetime
+    ended_at: datetime | None = Field(description="None while a spontaneous pause is running.")
+
+
 class SessionOut(BaseModel):
     """Raw state; clients derive end time and countdown from it with their own clock."""
 
     started_at: datetime
     target_minutes: int
-    paused_seconds: int  # finished pauses only
-    paused_since: datetime | None  # start of the running pause
+    pauses: list[PauseOut] = Field(description="Past, running and planned pauses, by start.")
 
     @classmethod
     def of(cls, session: WorkSession) -> "SessionOut":
-        open_pause = session.open_pause
         return cls(
             started_at=session.started_at,
             target_minutes=session.target_minutes,
-            paused_seconds=int(session.finished_pauses_duration.total_seconds()),
-            paused_since=open_pause.started_at if open_pause else None,
+            pauses=[
+                PauseOut(id=p.id, started_at=p.started_at, ended_at=p.ended_at)
+                for p in sorted(session.pauses, key=lambda p: p.started_at)
+            ],
         )
 
 
@@ -109,3 +120,45 @@ def end_session(db: Db, user: CurrentUser, clock: Now) -> Response:
     get_active(db, user).end(clock())
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+def get_pause(session: WorkSession, pause_id: int) -> Pause:
+    pause = next((p for p in session.pauses if p.id == pause_id), None)
+    if pause is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No such pause")
+    return pause
+
+
+def invalid(error: InvalidPause) -> HTTPException:
+    return HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(error))
+
+
+@router.post("/session/current/pauses", status_code=status.HTTP_201_CREATED)
+def add_pause(body: PauseIn, db: Db, user: CurrentUser) -> SessionOut:
+    """Adds a pause with start and end: forgotten earlier or planned ahead."""
+    session = get_active(db, user)
+    try:
+        session.add_pause(body.started_at, body.ended_at)
+    except InvalidPause as error:
+        raise invalid(error) from None
+    db.commit()
+    return SessionOut.of(session)
+
+
+@router.put("/session/current/pauses/{pause_id}")
+def change_pause(pause_id: int, body: PauseIn, db: Db, user: CurrentUser) -> SessionOut:
+    session = get_active(db, user)
+    try:
+        session.change_pause(get_pause(session, pause_id), body.started_at, body.ended_at)
+    except InvalidPause as error:
+        raise invalid(error) from None
+    db.commit()
+    return SessionOut.of(session)
+
+
+@router.delete("/session/current/pauses/{pause_id}")
+def remove_pause(pause_id: int, db: Db, user: CurrentUser) -> SessionOut:
+    session = get_active(db, user)
+    session.remove_pause(get_pause(session, pause_id))
+    db.commit()
+    return SessionOut.of(session)

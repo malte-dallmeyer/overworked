@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { formatClockTime, formatCountdown, formatDuration, latestPastTime, parseDuration } from './time'
+import {
+  formatClockTime,
+  formatCountdown,
+  formatDuration,
+  latestPastTime,
+  parseDuration,
+  timeOnOrAfter,
+} from './time'
 
 describe('parseDuration', () => {
   it.each([
@@ -59,5 +66,23 @@ describe('latestPastTime', () => {
 
   it.each(['', '7', '24:00', '12:60', 'abc'])('rejects %j', (input) => {
     expect(latestPastTime(input, now)).toBeNull()
+  })
+})
+
+describe('timeOnOrAfter', () => {
+  // Work started 08:00 in Berlin.
+  const workStart = new Date('2026-10-22T06:00:00Z')
+
+  it('is the same day for a later time', () => {
+    expect(timeOnOrAfter('12:30', workStart)).toEqual(new Date('2026-10-22T10:30:00Z'))
+  })
+
+  it('is the next day for an earlier time, e.g. a night shift', () => {
+    const lateStart = new Date('2026-10-22T18:00:00Z') // 20:00 in Berlin
+    expect(timeOnOrAfter('01:00', lateStart)).toEqual(new Date('2026-10-22T23:00:00Z'))
+  })
+
+  it('rejects invalid input', () => {
+    expect(timeOnOrAfter('', workStart)).toBeNull()
   })
 })

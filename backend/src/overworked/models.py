@@ -34,6 +34,10 @@ class InvalidStart(ValueError):
     pass
 
 
+class InvalidPause(ValueError):
+    pass
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -79,27 +83,28 @@ class WorkSession(Base):
     def is_active(self) -> bool:
         return self.ended_at is None
 
-    @property
-    def open_pause(self) -> "Pause | None":
-        return next((p for p in self.pauses if p.ended_at is None), None)
+    def pauses_at(self, moment: datetime) -> list["Pause"]:
+        return [p for p in self.pauses if p.covers(moment)]
 
-    @property
-    def is_paused(self) -> bool:
-        return self.open_pause is not None
-
-    @property
-    def finished_pauses_duration(self) -> timedelta:
-        return sum((p.ended_at - p.started_at for p in self.pauses if p.ended_at), timedelta())
+    def is_paused(self, now: datetime) -> bool:
+        return self.is_active and bool(self.pauses_at(now))
 
     def paused_duration(self, now: datetime) -> timedelta:
-        return sum((p.duration(now) for p in self.pauses), timedelta())
+        """Total pause time, planned pauses included. Overlapping pauses count once."""
+        merged: list[tuple[datetime, datetime]] = []
+        for start, end in sorted((p.started_at, p.ended_at or now) for p in self.pauses):
+            if merged and start <= merged[-1][1]:
+                merged[-1] = (merged[-1][0], max(merged[-1][1], end))
+            else:
+                merged.append((start, end))
+        return sum((end - start for start, end in merged), timedelta())
 
     def end_at(self, now: datetime) -> datetime:
-        """When work is done; while paused, this moves along with `now`."""
+        """When work is done; during a running pause without end this moves along with `now`."""
         return self.started_at + timedelta(minutes=self.target_minutes) + self.paused_duration(now)
 
     def is_due(self, now: datetime) -> bool:
-        return self.is_active and not self.is_paused and now >= self.end_at(now)
+        return self.is_active and not self.is_paused(now) and now >= self.end_at(now)
 
     def needs_alarm(self, now: datetime) -> bool:
         return self.is_due(now) and self.alarm_sent_at is None
@@ -108,17 +113,44 @@ class WorkSession(Base):
         self.alarm_sent_at = now
 
     def pause(self, now: datetime) -> None:
-        if self.is_active and not self.is_paused:
+        """Starts a spontaneous pause; its end is set by resume()."""
+        if self.is_active and not self.is_paused(now):
             self.pauses.append(Pause(started_at=now))
 
     def resume(self, now: datetime) -> None:
-        if pause := self.open_pause:
+        """Back to work: ends every pause going on right now, planned ones included."""
+        for pause in self.pauses_at(now):
             pause.ended_at = now
+        self.pauses = [p for p in self.pauses if p.ended_at is None or p.ended_at > p.started_at]
+
+    def add_pause(self, started_at: datetime, ended_at: datetime) -> "Pause":
+        """A pause with start and end: forgotten earlier or planned ahead."""
+        self._check_pause(started_at, ended_at)
+        pause = Pause(started_at=started_at, ended_at=ended_at)
+        self.pauses.append(pause)
+        return pause
+
+    def change_pause(self, pause: "Pause", started_at: datetime, ended_at: datetime) -> None:
+        self._check_pause(started_at, ended_at, ignore=pause)
+        pause.started_at = started_at
+        pause.ended_at = ended_at
+
+    def remove_pause(self, pause: "Pause") -> None:
+        self.pauses.remove(pause)
 
     def end(self, now: datetime) -> None:
         if self.is_active:
             self.resume(now)
+            self.pauses = [p for p in self.pauses if p.started_at <= now]
             self.ended_at = now
+
+    def _check_pause(self, started_at: datetime, ended_at: datetime, ignore=None) -> None:
+        if ended_at <= started_at:
+            raise InvalidPause("pause must end after it starts")
+        if started_at < self.started_at:
+            raise InvalidPause("pause must not start before work started")
+        if any(p.overlaps(started_at, ended_at) for p in self.pauses if p is not ignore):
+            raise InvalidPause("pause overlaps another pause")
 
 
 class Pause(Base):
@@ -131,5 +163,11 @@ class Pause(Base):
     started_at: Mapped[datetime] = mapped_column(UTCDateTime)
     ended_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
 
-    def duration(self, now: datetime) -> timedelta:
-        return (self.ended_at or now) - self.started_at
+    def covers(self, moment: datetime) -> bool:
+        return self.started_at <= moment and (self.ended_at is None or moment < self.ended_at)
+
+    def overlaps(self, started_at: datetime, ended_at: datetime) -> bool:
+        # A running pause has no end yet, so it overlaps everything after its start.
+        return started_at < (self.ended_at or datetime.max.replace(tzinfo=UTC)) and (
+            self.started_at < ended_at
+        )

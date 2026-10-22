@@ -137,6 +137,131 @@
           }
         }
       }
+    },
+    "/api/session/current/pauses": {
+      "post": {
+        "summary": "Add Pause",
+        "description": "Adds a pause with start and end: forgotten earlier or planned ahead.",
+        "operationId": "add_pause",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PauseIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/session/current/pauses/{pause_id}": {
+      "put": {
+        "summary": "Change Pause",
+        "operationId": "change_pause",
+        "parameters": [
+          {
+            "name": "pause_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Pause Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PauseIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove Pause",
+        "operationId": "remove_pause",
+        "parameters": [
+          {
+            "name": "pause_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Pause Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -154,6 +279,59 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "PauseIn": {
+        "properties": {
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "ended_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ended At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "started_at",
+          "ended_at"
+        ],
+        "title": "PauseIn"
+      },
+      "PauseOut": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At",
+            "description": "None while a spontaneous pause is running."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "started_at",
+          "ended_at"
+        ],
+        "title": "PauseOut"
+      },
       "SessionOut": {
         "properties": {
           "started_at": {
@@ -165,29 +343,20 @@
             "type": "integer",
             "title": "Target Minutes"
           },
-          "paused_seconds": {
-            "type": "integer",
-            "title": "Paused Seconds"
-          },
-          "paused_since": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Paused Since"
+          "pauses": {
+            "items": {
+              "$ref": "#/components/schemas/PauseOut"
+            },
+            "type": "array",
+            "title": "Pauses",
+            "description": "Past, running and planned pauses, by start."
           }
         },
         "type": "object",
         "required": [
           "started_at",
           "target_minutes",
-          "paused_seconds",
-          "paused_since"
+          "pauses"
         ],
         "title": "SessionOut",
         "description": "Raw state; clients derive end time and countdown from it with their own clock."

@@ -1,31 +1,27 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import type { SessionOut } from './api'
 import {
   endSessionMutation,
   getCurrentSessionOptions,
-  getCurrentSessionQueryKey,
   pauseSessionMutation,
   resumeSessionMutation,
   startSessionMutation,
 } from './api/@tanstack/react-query.gen'
-import { endTime, remainingMs } from './session'
+import { PausePanel } from './PausePanel'
+import { currentPause, endTime, remainingMs } from './session'
 import { formatClockTime, formatCountdown, formatDuration, latestPastTime, parseDuration } from './time'
 import { useNow } from './useNow'
+import { useSessionCache } from './useSessionCache'
 
 export default function App() {
-  const queryClient = useQueryClient()
   const current = useQuery(getCurrentSessionOptions())
+  const cache = useSessionCache()
 
-  const sessionKey = getCurrentSessionQueryKey()
-  const showSession = (session: SessionOut | null) => queryClient.setQueryData(sessionKey, session)
-  // E.g. another device changed the session in the meantime: show what is true now.
-  const refetch = () => queryClient.invalidateQueries({ queryKey: sessionKey })
-
-  const start = useMutation({ ...startSessionMutation(), onSuccess: showSession, onError: refetch })
-  const pause = useMutation({ ...pauseSessionMutation(), onSuccess: showSession, onError: refetch })
-  const resume = useMutation({ ...resumeSessionMutation(), onSuccess: showSession, onError: refetch })
-  const end = useMutation({ ...endSessionMutation(), onSuccess: () => showSession(null), onError: refetch })
+  const start = useMutation({ ...startSessionMutation(), onSuccess: cache.show, onError: cache.refetch })
+  const pause = useMutation({ ...pauseSessionMutation(), onSuccess: cache.show, onError: cache.refetch })
+  const resume = useMutation({ ...resumeSessionMutation(), onSuccess: cache.show, onError: cache.refetch })
+  const end = useMutation({ ...endSessionMutation(), onSuccess: () => cache.show(null), onError: cache.refetch })
 
   return (
     <main>
@@ -130,22 +126,24 @@ type RunningSessionProps = {
 
 function RunningSession({ session, onPause, onResume, onEnd }: RunningSessionProps) {
   const now = useNow()
+  const pause = currentPause(session, now)
 
   return (
-    <section>
-      {session.paused_since && (
-        <p className="paused">Pausiert seit {formatClockTime(new Date(session.paused_since))}</p>
-      )}
-      <p className="end">Feierabend um {formatClockTime(endTime(session, now))}</p>
-      <p className="remaining">noch {formatCountdown(remainingMs(session, now))}</p>
-      {session.paused_since ? (
-        <button onClick={onResume}>Weiter</button>
-      ) : (
-        <button className="secondary" onClick={onPause}>
-          Pause
-        </button>
-      )}
-      <button onClick={onEnd}>Feierabend machen</button>
-    </section>
+    <>
+      <section>
+        {pause && <p className="paused">Pausiert seit {formatClockTime(new Date(pause.started_at))}</p>}
+        <p className="end">Feierabend um {formatClockTime(endTime(session, now))}</p>
+        <p className="remaining">noch {formatCountdown(remainingMs(session, now))}</p>
+        {pause ? (
+          <button onClick={onResume}>Weiter</button>
+        ) : (
+          <button className="secondary" onClick={onPause}>
+            Pause
+          </button>
+        )}
+        <button onClick={onEnd}>Feierabend machen</button>
+      </section>
+      <PausePanel session={session} now={now} />
+    </>
   )
 }

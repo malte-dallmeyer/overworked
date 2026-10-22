@@ -5,8 +5,7 @@ export { expect } from '@playwright/test'
 export type WorkSession = {
   started_at: string
   target_minutes: number
-  paused_seconds: number
-  paused_since: string | null
+  pauses: { id: number; started_at: string; ended_at: string | null }[]
 }
 
 export async function currentSession(request: APIRequestContext): Promise<WorkSession | null> {

@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { EndSessionData, EndSessionResponses, GetCurrentSessionData, GetCurrentSessionResponses, HealthData, HealthResponses, PauseSessionData, PauseSessionResponses, ResumeSessionData, ResumeSessionResponses, StartSessionData, StartSessionErrors, StartSessionResponses } from './types.gen';
+import type { AddPauseData, AddPauseErrors, AddPauseResponses, ChangePauseData, ChangePauseErrors, ChangePauseResponses, EndSessionData, EndSessionResponses, GetCurrentSessionData, GetCurrentSessionResponses, HealthData, HealthResponses, PauseSessionData, PauseSessionResponses, RemovePauseData, RemovePauseErrors, RemovePauseResponses, ResumeSessionData, ResumeSessionResponses, StartSessionData, StartSessionErrors, StartSessionResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -54,3 +54,34 @@ export const resumeSession = <ThrowOnError extends boolean = false>(options?: Op
  * End Session
  */
 export const endSession = <ThrowOnError extends boolean = false>(options?: Options<EndSessionData, ThrowOnError>) => (options?.client ?? client).post<EndSessionResponses, unknown, ThrowOnError>({ url: '/api/session/current/end', ...options });
+
+/**
+ * Add Pause
+ *
+ * Adds a pause with start and end: forgotten earlier or planned ahead.
+ */
+export const addPause = <ThrowOnError extends boolean = false>(options: Options<AddPauseData, ThrowOnError>) => (options.client ?? client).post<AddPauseResponses, AddPauseErrors, ThrowOnError>({
+    url: '/api/session/current/pauses',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Remove Pause
+ */
+export const removePause = <ThrowOnError extends boolean = false>(options: Options<RemovePauseData, ThrowOnError>) => (options.client ?? client).delete<RemovePauseResponses, RemovePauseErrors, ThrowOnError>({ url: '/api/session/current/pauses/{pause_id}', ...options });
+
+/**
+ * Change Pause
+ */
+export const changePause = <ThrowOnError extends boolean = false>(options: Options<ChangePauseData, ThrowOnError>) => (options.client ?? client).put<ChangePauseResponses, ChangePauseErrors, ThrowOnError>({
+    url: '/api/session/current/pauses/{pause_id}',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});

@@ -98,3 +98,19 @@ def test_backdated_session_alarms_at_the_shifted_end(client, clock, notifier, ch
     check_alarms()
 
     assert len(notifier.sent) == 1
+
+
+def test_no_alarm_during_a_planned_pause(client, clock, notifier, check_alarms):
+    start(client, target_minutes=60)
+    client.post(
+        "/api/session/current/pauses",
+        json={"started_at": "2026-10-22T08:30:00Z", "ended_at": "2026-10-22T10:00:00Z"},
+    )
+    clock.advance(timedelta(hours=2))  # 10:00, end is 10:30
+
+    check_alarms()
+    assert notifier.sent == []
+
+    clock.advance(timedelta(minutes=30))
+    check_alarms()
+    assert len(notifier.sent) == 1
