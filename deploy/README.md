@@ -9,9 +9,9 @@ genauso: Dann entfällt Schritt 2, und du legst den DNS-Eintrag von Hand an.
 |---|---|
 | `terraform/` | VM, feste IP, Firewall (80/443), DNS-Eintrag |
 | `compose.yml`, `Caddyfile` | Was auf dem Server läuft |
-| `.env.example` | Vorlage für die Server-Konfiguration (`.env`, nicht im Repo) |
-| `../scripts/deploy.mjs` | Kopiert die Dateien auf den Server und startet die neueste Version |
-| `../.github/workflows/ci.yml` | Testet jeden Push; baut auf `main` das Image `ghcr.io/<user>/overworked` |
+| `.env.example` | Vorlage für die Konfiguration beim Deployen vom eigenen Rechner (`.env`, nicht im Repo) |
+| `../scripts/deploy.mjs` | Kopiert `compose.yml` und `Caddyfile` auf den Server und startet das Image; die Konfiguration geht als Umgebungsvariablen mit, auf dem Server liegt sie in keiner Datei |
+| `../.github/workflows/ci.yml` | Testet jeden Push; auf `main` baut es das Image `ghcr.io/<user>/overworked` und deployt es |
 
 ## Voraussetzungen
 
@@ -116,16 +116,44 @@ Caddy holt beim ersten Aufruf der Domain das Zertifikat. Danach läuft die App u
   über das Installieren-Symbol in der Adressleiste installieren, in Safari über *Zum Dock
   hinzufügen*.
 
+## 5. Automatisch deployen aus GitHub Actions
+
+Danach geht jeder Push auf `main` mit grünen Tests von selbst live, und zwar genau das Image
+dieses Commits. Die CI meldet sich mit einem eigenen Schlüssel ohne Passphrase an, der nur
+dafür da ist:
+
+```sh
+ssh-keygen -t ed25519 -f ~/.ssh/overworked-ci -N "" -C "overworked-ci"
+```
+
+In `terraform.tfvars` `ci_ssh_public_key_file = "~/.ssh/overworked-ci.pub"` eintragen und
+`terraform apply` ausführen; das trägt den Schlüssel zusätzlich auf der VM ein.
+
+Dann in GitHub: *Settings → Environments → New environment* `production`, darin:
+
+| Art | Name | Wert |
+|---|---|---|
+| Secret | `DEPLOY_SSH_KEY` | Inhalt von `~/.ssh/overworked-ci` (privater Teil) |
+| Secret | `DEPLOY_KNOWN_HOSTS` | Ausgabe von `ssh-keyscan -t ed25519 <ip>` |
+| Variable | `DEPLOY_HOST` | `overworked@<ip>` |
+| Variable | `OVERWORKED_DOMAIN` | z. B. `overworked.example.com` |
+| Secret | `OVERWORKED_PASSWORD` | Login-Passwort |
+| Secret | `OVERWORKED_SECRET_KEY` | z. B. `openssl rand -hex 32` |
+| Secret | `OVERWORKED_NTFY_TOPIC` | ntfy-Topic |
+| Variable | `OVERWORKED_VAPID_PUBLIC_KEY` | optional, aus `generate-vapid-keys.mjs` |
+| Secret | `OVERWORKED_VAPID_PRIVATE_KEY` | optional, aus `generate-vapid-keys.mjs` |
+
+Die Werte erreichen den Server nur als Umgebungsvariablen für `docker compose`. Wer will, kann
+unter *Deployment protection rules* eine Freigabe vor jedem Deploy verlangen.
+
 ## Updates
 
-Push auf `main` und warten, bis die CI grün ist. Dann:
+Mit Schritt 5 kommt jeder grüne Push auf `main` von selbst. Ohne ihn, oder um vom eigenen
+Rechner aus zu deployen (Werte aus `deploy/.env`):
 
 ```sh
 node scripts/deploy.mjs overworked
 ```
-
-Das Skript kopiert auch geänderte Dateien wie `compose.yml`, `Caddyfile` und `.env` neu auf den
-Server.
 
 ## Daten
 

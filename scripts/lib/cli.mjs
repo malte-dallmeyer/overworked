@@ -58,13 +58,16 @@ export function parseCli(scriptUrl, { flags = [], suites = [], argument } = {}) 
   }
 }
 
-/** Runs a command with the terminal attached and resolves with its exit code. */
-export function run(command, args = [], { cwd = ROOT, env } = {}) {
+/**
+ * Runs a command with the terminal attached and resolves with its exit code.
+ * `input` is written to its stdin instead (e.g. secrets that must not appear in arguments).
+ */
+export function run(command, args = [], { cwd = ROOT, env, input } = {}) {
   return new Promise((resolvePromise) => {
     const child = spawn(command, args, {
       cwd,
       env: env && { ...process.env, ...env },
-      stdio: 'inherit',
+      stdio: input === undefined ? 'inherit' : ['pipe', 'inherit', 'inherit'],
       // npx, uv etc. are .cmd shims on Windows and need a shell there.
       shell: process.platform === 'win32',
     })
@@ -73,6 +76,7 @@ export function run(command, args = [], { cwd = ROOT, env } = {}) {
     const forward = (signal) => child.kill(signal)
     process.on('SIGINT', ignore)
     process.on('SIGTERM', forward)
+    if (input !== undefined) child.stdin.end(input)
     child.on('exit', (code, signal) => {
       process.off('SIGINT', ignore)
       process.off('SIGTERM', forward)

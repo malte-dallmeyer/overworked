@@ -1,13 +1,23 @@
 # Production: Caddy terminates HTTPS (Let's Encrypt) and forwards to the app.
-# Lives on the server next to Caddyfile and .env; `node scripts/deploy.mjs` copies all three.
+# `node scripts/deploy.mjs` copies this file and the Caddyfile to the server and runs
+# `docker compose` there with the configuration as environment variables (no file).
 services:
   app:
-    image: ${OVERWORKED_IMAGE:?set OVERWORKED_IMAGE in .env}
+    image: ${OVERWORKED_IMAGE:?OVERWORKED_IMAGE is not set}
     restart: unless-stopped
-    env_file: .env
     environment:
+      # Without a value: taken from the environment `docker compose` runs in, if set.
+      OVERWORKED_PASSWORD:
+      OVERWORKED_SECRET_KEY:
+      OVERWORKED_NTFY_URL:
+      OVERWORKED_NTFY_TOPIC:
+      OVERWORKED_NTFY_TOKEN:
+      OVERWORKED_VAPID_PUBLIC_KEY:
+      OVERWORKED_VAPID_PRIVATE_KEY:
+      OVERWORKED_VAPID_SUBJECT:
+      OVERWORKED_ALARM_CHECK_INTERVAL_SECONDS:
       # For the buttons in the notification and opening the app from it.
-      OVERWORKED_PUBLIC_URL: https://${OVERWORKED_DOMAIN:?set OVERWORKED_DOMAIN in .env}
+      OVERWORKED_PUBLIC_URL: https://${OVERWORKED_DOMAIN:?OVERWORKED_DOMAIN is not set}
     volumes:
       - data:/data
 
@@ -15,7 +25,7 @@ services:
     image: caddy:2
     restart: unless-stopped
     environment:
-      OVERWORKED_DOMAIN: ${OVERWORKED_DOMAIN:?set OVERWORKED_DOMAIN in .env}
+      OVERWORKED_DOMAIN: ${OVERWORKED_DOMAIN:?OVERWORKED_DOMAIN is not set}
     ports:
       - "80:80"
       - "443:443"

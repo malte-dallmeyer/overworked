@@ -37,6 +37,12 @@ variable "ssh_user" {
   default     = "overworked"
 }
 
+variable "ci_ssh_public_key_file" {
+  description = "Key GitHub Actions deploys with (no passphrase, only for this); null: none."
+  type        = string
+  default     = null
+}
+
 variable "ssh_public_key_file" {
   description = "Public half of a key used only for this server, see deploy/README.md."
   type        = string

@@ -104,6 +104,9 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      # The exact image of this commit, so the deploy runs what was tested.
+      image: ${{ steps.name.outputs.image }}
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -127,3 +130,39 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - id: name
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}:sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+  # Every green push to main goes live. The configuration comes from the "production"
+  # environment's secrets and variables and reaches the server as environment variables;
+  # setup in deploy/README.md.
+  deploy:
+    needs: image
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Secrets via env, never spliced into the script itself.
+      - name: SSH access to the server
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - run: node scripts/deploy.mjs "$DEPLOY_HOST"
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          OVERWORKED_IMAGE: ${{ needs.image.outputs.image }}
+          OVERWORKED_DOMAIN: ${{ vars.OVERWORKED_DOMAIN }}
+          OVERWORKED_PASSWORD: ${{ secrets.OVERWORKED_PASSWORD }}
+          OVERWORKED_SECRET_KEY: ${{ secrets.OVERWORKED_SECRET_KEY }}
+          OVERWORKED_NTFY_TOPIC: ${{ secrets.OVERWORKED_NTFY_TOPIC }}
+          OVERWORKED_VAPID_PUBLIC_KEY: ${{ vars.OVERWORKED_VAPID_PUBLIC_KEY }}
+          OVERWORKED_VAPID_PRIVATE_KEY: ${{ secrets.OVERWORKED_VAPID_PRIVATE_KEY }}

@@ -12,8 +12,10 @@ docs/story-map.md. Talk to the user in German.
 - `e2e/` – Playwright end-to-end tests against the full stack (built frontend served by a real backend, fresh SQLite).
 - `Dockerfile` / `docker-compose.yml` – single container serving both.
 - `deploy/` – production: Terraform (GCP e2-micro + Cloudflare DNS), `compose.yml` with Caddy for
-  HTTPS, `scripts/deploy.mjs <user@host>`. CI (`.github/workflows/ci.yml`) runs lint and each kind of test as a
-  parallel job on every push and publishes the image to GHCR from `main` once all are green. Setup steps: `deploy/README.md`.
+  HTTPS, `scripts/deploy.mjs <user@host>`. Configuration reaches the server only as environment
+  variables (over SSH stdin, from GitHub secrets or a local `deploy/.env`), never as a file there. CI (`.github/workflows/ci.yml`) runs lint and each kind of test as a
+  parallel job on every push; on `main`, once all are green, it publishes the image to GHCR and
+  deploys exactly that image (environment `production`). Setup steps: `deploy/README.md`.
 
 ## Commands
 

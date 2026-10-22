@@ -6,3 +6,5 @@ cloudflare_zone_id = "0123456789abcdef0123456789abcdef"
 # Alternatively leave it out and set CLOUDFLARE_API_TOKEN in the environment.
 cloudflare_api_token = ""
 # ssh_public_key_file = "~/.ssh/overworked.pub"   # the default
+# For deploying from GitHub Actions, see deploy/README.md:
+# ci_ssh_public_key_file = "~/.ssh/overworked-ci.pub"

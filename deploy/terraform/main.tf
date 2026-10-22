@@ -78,7 +78,10 @@ resource "google_compute_instance" "overworked" {
   }
 
   metadata = {
-    ssh-keys = "${var.ssh_user}:${trimspace(file(pathexpand(var.ssh_public_key_file)))}"
+    ssh-keys = join("\n", [
+      for key_file in compact([var.ssh_public_key_file, var.ci_ssh_public_key_file]) :
+      "${var.ssh_user}:${trimspace(file(pathexpand(key_file)))}"
+    ])
   }
   metadata_startup_script = templatefile("${path.module}/startup.sh", { ssh_user = var.ssh_user })
 
