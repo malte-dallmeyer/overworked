@@ -20,3 +20,7 @@ e2e/playwright-report/
 
 # Editors
 *.swp
+
+# Local research output
+research_notes/
+reports/
