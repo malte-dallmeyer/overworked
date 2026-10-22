@@ -26,6 +26,7 @@ from overworked.models import (
     WorkSession,
 )
 from overworked.notifier import Notifier
+from overworked.targets import KEEP_SESSIONS, quick_targets
 
 log = logging.getLogger(__name__)
 
@@ -54,6 +55,11 @@ class StartSession(BaseModel):
 
 class ChangeTarget(BaseModel):
     target_minutes: int = Field(ge=1, le=MAX_TARGET_MINUTES)
+
+
+class QuickTargetsOut(BaseModel):
+    last: int = Field(description="Target of the last session started: the prefilled value.")
+    choices: list[int] = Field(description="Distinct targets of the last starts, shortest first.")
 
 
 class LegalBreakOut(BaseModel):
@@ -165,6 +171,31 @@ async def stream_session(request: Request, db: Db, user: CurrentUser) -> Streami
     )
 
 
+@router.get("/targets")
+def get_quick_targets(db: Db, user: CurrentUser) -> QuickTargetsOut:
+    """Quick choices for the target on the start screen."""
+    newest_first = db.scalars(
+        select(WorkSession.target_minutes)
+        .where(WorkSession.user_id == user.id)
+        .order_by(WorkSession.id.desc())
+        .limit(KEEP_SESSIONS)
+    ).all()
+    targets = quick_targets(list(reversed(newest_first)))
+    return QuickTargetsOut(last=targets.last, choices=targets.choices)
+
+
+def forget_old_sessions(db: Session, user: User) -> None:
+    """No history: keep only what the quick choices need, the new session included."""
+    old = db.scalars(
+        select(WorkSession)
+        .where(WorkSession.user_id == user.id, WorkSession.ended_at.is_not(None))
+        .order_by(WorkSession.id.desc())
+        .offset(KEEP_SESSIONS - 1)
+    ).all()
+    for session in old:
+        db.delete(session)  # pauses go with it (ORM cascade)
+
+
 @router.post("/session", status_code=status.HTTP_201_CREATED)
 def start_session(body: StartSession, db: Db, user: CurrentUser, clock: Now) -> SessionOut:
     conflict = HTTPException(status.HTTP_409_CONFLICT, "A session is already running")
@@ -174,6 +205,7 @@ def start_session(body: StartSession, db: Db, user: CurrentUser, clock: Now) -> 
         session = WorkSession.start(user.id, body.target_minutes, clock(), body.started_at)
     except InvalidStart as error:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(error)) from None
+    forget_old_sessions(db, user)
     db.add(session)
     try:
         db.commit()

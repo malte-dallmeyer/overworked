@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AddPauseData, AddPauseErrors, AddPauseResponses, ChangePauseData, ChangePauseErrors, ChangePauseResponses, ChangeTargetData, ChangeTargetErrors, ChangeTargetResponses, EndSessionData, EndSessionErrors, EndSessionFromNotificationData, EndSessionFromNotificationErrors, EndSessionFromNotificationResponses, EndSessionResponses, GetCurrentSessionData, GetCurrentSessionErrors, GetCurrentSessionResponses, HealthData, HealthResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, PauseSessionData, PauseSessionErrors, PauseSessionResponses, RemovePauseData, RemovePauseErrors, RemovePauseResponses, ResumeSessionData, ResumeSessionErrors, ResumeSessionResponses, SnoozeSessionData, SnoozeSessionErrors, SnoozeSessionFromNotificationData, SnoozeSessionFromNotificationErrors, SnoozeSessionFromNotificationResponses, SnoozeSessionResponses, StartSessionData, StartSessionErrors, StartSessionResponses, StreamSessionData, StreamSessionErrors, StreamSessionResponses } from './types.gen';
+import type { AddPauseData, AddPauseErrors, AddPauseResponses, ChangePauseData, ChangePauseErrors, ChangePauseResponses, ChangeTargetData, ChangeTargetErrors, ChangeTargetResponses, EndSessionData, EndSessionErrors, EndSessionFromNotificationData, EndSessionFromNotificationErrors, EndSessionFromNotificationResponses, EndSessionResponses, GetCurrentSessionData, GetCurrentSessionErrors, GetCurrentSessionResponses, GetQuickTargetsData, GetQuickTargetsErrors, GetQuickTargetsResponses, HealthData, HealthResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, PauseSessionData, PauseSessionErrors, PauseSessionResponses, RemovePauseData, RemovePauseErrors, RemovePauseResponses, ResumeSessionData, ResumeSessionErrors, ResumeSessionResponses, SnoozeSessionData, SnoozeSessionErrors, SnoozeSessionFromNotificationData, SnoozeSessionFromNotificationErrors, SnoozeSessionFromNotificationResponses, SnoozeSessionResponses, StartSessionData, StartSessionErrors, StartSessionResponses, StreamSessionData, StreamSessionErrors, StreamSessionResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -52,6 +52,13 @@ export const getCurrentSession = <ThrowOnError extends boolean = false>(options?
  * whenever it changes, from any device or the alarm. Commands stay plain requests.
  */
 export const streamSession = <ThrowOnError extends boolean = false>(options?: Options<StreamSessionData, ThrowOnError, unknown>) => (options?.client ?? client).sse.get<StreamSessionResponses, StreamSessionErrors, ThrowOnError>({ url: '/api/session/events', ...options });
+
+/**
+ * Get Quick Targets
+ *
+ * Quick choices for the target on the start screen.
+ */
+export const getQuickTargets = <ThrowOnError extends boolean = false>(options?: Options<GetQuickTargetsData, ThrowOnError>) => (options?.client ?? client).get<GetQuickTargetsResponses, GetQuickTargetsErrors, ThrowOnError>({ url: '/api/targets', ...options });
 
 /**
  * Start Session

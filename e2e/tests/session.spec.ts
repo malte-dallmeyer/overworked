@@ -102,6 +102,8 @@ test('forgot to start: start with the time work actually began', async ({ page }
     timeZone: 'Europe/Berlin',
   })
   await page.goto('/')
+  // The field holds the target used last, which depends on the tests before.
+  await page.getByLabel('Sollzeit', { exact: true }).fill('8:00')
 
   await page.getByText('Schon früher angefangen?').click()
   await page.getByLabel('Angefangen um').fill(anHourAgo)

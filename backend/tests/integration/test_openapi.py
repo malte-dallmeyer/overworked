@@ -18,6 +18,7 @@ def test_operations_are_named_after_their_functions():
         "get_current_session",
         "stream_session",
         "start_session",
+        "get_quick_targets",
         "pause_session",
         "resume_session",
         "end_session",

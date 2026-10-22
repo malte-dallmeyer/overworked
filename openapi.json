@@ -133,6 +133,35 @@
         }
       }
     },
+    "/api/targets": {
+      "get": {
+        "summary": "Get Quick Targets",
+        "description": "Quick choices for the target on the start screen.",
+        "operationId": "get_quick_targets",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuickTargetsOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/session": {
       "post": {
         "summary": "Start Session",
@@ -627,6 +656,29 @@
           "ended_at"
         ],
         "title": "PauseOut"
+      },
+      "QuickTargetsOut": {
+        "properties": {
+          "last": {
+            "type": "integer",
+            "title": "Last",
+            "description": "Target of the last session started: the prefilled value."
+          },
+          "choices": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Choices",
+            "description": "Distinct targets of the last starts, shortest first."
+          }
+        },
+        "type": "object",
+        "required": [
+          "last",
+          "choices"
+        ],
+        "title": "QuickTargetsOut"
       },
       "SessionOut": {
         "properties": {

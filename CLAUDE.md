@@ -53,7 +53,10 @@ Scripts must stay cross-platform (Linux, macOS, Windows): no shell syntax, spawn
   changes; it polls the DB every second (`overworked/events.py`), so changes from any route or the
   alarm loop show up without explicit notifications. The frontend writes them into the query cache
   (`useLiveUpdates`). Uvicorn runs with `--timeout-graceful-shutdown`, since open streams never end.
-  Component tests get a silent stream by default (`src/test/worker.ts`); override it with `sse()`.
+  Component tests get a silent stream and the quick targets of a fresh instance by default
+  (`src/test/worker.ts`); override them with `sse()` / `http.get()`.
+- No history: starting a session deletes all but the last 5 (`KEEP_SESSIONS`), which is all the
+  quick choices on the start screen need (`overworked/targets.py`).
 - The generated client throws only the response body; `frontend/src/apiError.ts` wraps it in
   `ApiError` with the status. A 401 shows the login form.
 - No secrets in the repo. Configuration via `OVERWORKED_*` env vars; document new ones in `.env.example`.

@@ -85,6 +85,24 @@ export type PauseOut = {
 };
 
 /**
+ * QuickTargetsOut
+ */
+export type QuickTargetsOut = {
+    /**
+     * Last
+     *
+     * Target of the last session started: the prefilled value.
+     */
+    last: number;
+    /**
+     * Choices
+     *
+     * Distinct targets of the last starts, shortest first.
+     */
+    choices: Array<number>;
+};
+
+/**
  * SessionOut
  *
  * Raw state; clients derive end time and countdown from it with their own clock.
@@ -282,6 +300,31 @@ export type StreamSessionResponses = {
      */
     200: unknown;
 };
+
+export type GetQuickTargetsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/targets';
+};
+
+export type GetQuickTargetsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type GetQuickTargetsError = GetQuickTargetsErrors[keyof GetQuickTargetsErrors];
+
+export type GetQuickTargetsResponses = {
+    /**
+     * Successful Response
+     */
+    200: QuickTargetsOut;
+};
+
+export type GetQuickTargetsResponse = GetQuickTargetsResponses[keyof GetQuickTargetsResponses];
 
 export type StartSessionData = {
     body: StartSession;

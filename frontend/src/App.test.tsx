@@ -84,6 +84,17 @@ it('shows the app name', async () => {
   await expect.element(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Overworked')
 })
 
+it('offers the recently used targets and prefills the last one', async () => {
+  givenCurrentSession(null)
+  worker.use(http.get('/api/targets', () => HttpResponse.json({ last: 300, choices: [300, 480] })))
+  const screen = await render(<App />)
+
+  await expect.element(screen.getByLabelText('Sollzeit')).toHaveValue('5:00')
+  const choices = screen.getByRole('group', { name: 'Schnellauswahl Sollzeit' }).getByRole('button')
+  await expect.poll(() => choices.elements().map((e) => e.textContent)).toEqual(['5:00 h', '8:00 h'])
+  await expect.element(screen.getByRole('button', { name: '5:00 h' })).toHaveAttribute('aria-pressed', 'true')
+})
+
 it('picks a target from the quick choices', async () => {
   givenCurrentSession(null)
   let requested: unknown

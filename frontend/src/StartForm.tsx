@@ -1,13 +1,25 @@
+import { useQuery } from '@tanstack/react-query'
 import { History, Play } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
+import type { QuickTargetsOut } from './api'
+import { getQuickTargetsOptions } from './api/@tanstack/react-query.gen'
 import { formatDuration, latestPastTime, parseDuration } from './time'
 
-const QUICK_TARGETS = ['7:30', '8:00']
+// If the server cannot tell: what a fresh instance would offer.
+const FALLBACK: QuickTargetsOut = { last: 480, choices: [450, 480] }
 
 type StartFormProps = { onStart: (targetMinutes: number, startedAt?: Date) => void }
 
+/** Waits for the recently used targets, so the form starts with the right value. */
 export function StartForm({ onStart }: StartFormProps) {
-  const [target, setTarget] = useState(formatDuration(8 * 60))
+  const targets = useQuery(getQuickTargetsOptions())
+  if (targets.isPending) return <p className="muted">Lädt…</p>
+  return <StartFormFields targets={targets.data ?? FALLBACK} onStart={onStart} />
+}
+
+function StartFormFields({ targets, onStart }: StartFormProps & { targets: QuickTargetsOut }) {
+  const quickTargets = targets.choices.map(formatDuration)
+  const [target, setTarget] = useState(formatDuration(targets.last))
   const [startTime, setStartTime] = useState('')
   const [targetError, setTargetError] = useState<string | null>(null)
   const [startError, setStartError] = useState<string | null>(null)
@@ -53,7 +65,7 @@ export function StartForm({ onStart }: StartFormProps) {
         aria-describedby={targetError ? 'target-error' : undefined}
       />
       <div className="chips" role="group" aria-label="Schnellauswahl Sollzeit">
-        {QUICK_TARGETS.map((quick) => (
+        {quickTargets.map((quick) => (
           <button
             key={quick}
             type="button"

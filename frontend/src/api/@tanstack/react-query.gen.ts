@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { addPause, changePause, changeTarget, endSession, endSessionFromNotification, getCurrentSession, health, login, logout, type Options, pauseSession, removePause, resumeSession, snoozeSession, snoozeSessionFromNotification, startSession } from '../sdk.gen';
-import type { AddPauseData, AddPauseError, AddPauseResponse, ChangePauseData, ChangePauseError, ChangePauseResponse, ChangeTargetData, ChangeTargetError, ChangeTargetResponse, EndSessionData, EndSessionError, EndSessionFromNotificationData, EndSessionFromNotificationError, EndSessionFromNotificationResponse, EndSessionResponse, GetCurrentSessionData, GetCurrentSessionError, GetCurrentSessionResponse, HealthData, HealthResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, PauseSessionData, PauseSessionError, PauseSessionResponse, RemovePauseData, RemovePauseError, RemovePauseResponse, ResumeSessionData, ResumeSessionError, ResumeSessionResponse, SnoozeSessionData, SnoozeSessionError, SnoozeSessionFromNotificationData, SnoozeSessionFromNotificationError, SnoozeSessionFromNotificationResponse, SnoozeSessionResponse, StartSessionData, StartSessionError, StartSessionResponse } from '../types.gen';
+import { addPause, changePause, changeTarget, endSession, endSessionFromNotification, getCurrentSession, getQuickTargets, health, login, logout, type Options, pauseSession, removePause, resumeSession, snoozeSession, snoozeSessionFromNotification, startSession } from '../sdk.gen';
+import type { AddPauseData, AddPauseError, AddPauseResponse, ChangePauseData, ChangePauseError, ChangePauseResponse, ChangeTargetData, ChangeTargetError, ChangeTargetResponse, EndSessionData, EndSessionError, EndSessionFromNotificationData, EndSessionFromNotificationError, EndSessionFromNotificationResponse, EndSessionResponse, GetCurrentSessionData, GetCurrentSessionError, GetCurrentSessionResponse, GetQuickTargetsData, GetQuickTargetsError, GetQuickTargetsResponse, HealthData, HealthResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, PauseSessionData, PauseSessionError, PauseSessionResponse, RemovePauseData, RemovePauseError, RemovePauseResponse, ResumeSessionData, ResumeSessionError, ResumeSessionResponse, SnoozeSessionData, SnoozeSessionError, SnoozeSessionFromNotificationData, SnoozeSessionFromNotificationError, SnoozeSessionFromNotificationResponse, SnoozeSessionResponse, StartSessionData, StartSessionError, StartSessionResponse } from '../types.gen';
 
 /**
  * Login
@@ -107,6 +107,26 @@ export const getCurrentSessionOptions = (options?: Options<GetCurrentSessionData
         return data;
     },
     queryKey: getCurrentSessionQueryKey(options)
+});
+
+export const getQuickTargetsQueryKey = (options?: Options<GetQuickTargetsData>) => createQueryKey('getQuickTargets', options);
+
+/**
+ * Get Quick Targets
+ *
+ * Quick choices for the target on the start screen.
+ */
+export const getQuickTargetsOptions = (options?: Options<GetQuickTargetsData>) => queryOptions<GetQuickTargetsResponse, GetQuickTargetsError, GetQuickTargetsResponse, ReturnType<typeof getQuickTargetsQueryKey>>({
+    queryFn: async ({ queryKey, signal }) => {
+        const { data } = await getQuickTargets({
+            ...options,
+            ...queryKey[0],
+            signal,
+            throwOnError: true
+        });
+        return data;
+    },
+    queryKey: getQuickTargetsQueryKey(options)
 });
 
 /**

@@ -1,5 +1,9 @@
-import { sse } from 'msw'
+import { http, HttpResponse, sse } from 'msw'
 import { setupWorker } from 'msw/browser'
 
-// By default no other device changes anything: the live-update stream stays silent.
-export const worker = setupWorker(sse('/api/session/events', () => {}))
+// Defaults every test can rely on and override: the quick choices of a fresh instance,
+// and a silent live-update stream (no other device changes anything).
+export const worker = setupWorker(
+  http.get('/api/targets', () => HttpResponse.json({ last: 480, choices: [450, 480] })),
+  sse('/api/session/events', () => {}),
+)
