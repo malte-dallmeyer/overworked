@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from overworked.models import InvalidPause, WorkSession
+from overworked.models import CannotSnooze, InvalidPause, WorkSession
 
 
 def at(hour: int, minute: int = 0, day: int = 22) -> datetime:
@@ -11,7 +11,8 @@ def at(hour: int, minute: int = 0, day: int = 22) -> datetime:
 
 def a_session(target_minutes: int = 360, started_at: datetime | None = None) -> WorkSession:
     """By default 6 h from 08:00, which needs no legal break: ends at 14:00."""
-    return WorkSession(user_id=1, started_at=started_at or at(8), target_minutes=target_minutes)
+    start = started_at or at(8)
+    return WorkSession.start(user_id=1, target_minutes=target_minutes, now=start)
 
 
 def test_ends_after_target_duration():
@@ -52,20 +53,6 @@ def test_ending_twice_keeps_first_end_time():
     session.end(at(11))
 
     assert session.ended_at == at(10)
-
-
-def test_needs_alarm_once_due():
-    session = a_session()
-
-    assert not session.needs_alarm(at(13, 59))
-    assert session.needs_alarm(at(14))
-
-
-def test_needs_no_alarm_after_it_was_sent():
-    session = a_session()
-    session.mark_alarm_sent(at(14))
-
-    assert not session.needs_alarm(at(14, 5))
 
 
 # --- Spontaneous pauses ---
@@ -322,3 +309,98 @@ def test_during_a_running_pause_the_end_holds_until_the_legal_break_is_used_up()
 
     assert session.end_at(at(12, 20)) == at(16, 30)
     assert session.end_at(at(12, 45)) == at(16, 45)
+
+
+# --- Alarm: repeated until confirmed, one snooze, auto-end ---
+
+
+def alarmed(session: WorkSession, *moments: datetime) -> WorkSession:
+    for moment in moments:
+        session.mark_alarm_sent(moment)
+    return session
+
+
+def test_needs_alarm_once_due():
+    session = a_session()
+
+    assert not session.needs_alarm(at(13, 59))
+    assert session.needs_alarm(at(14))
+
+
+def test_repeats_the_alarm_every_two_minutes_until_confirmed():
+    session = alarmed(a_session(), at(14))
+
+    assert not session.needs_alarm(at(14, 1))
+    assert session.needs_alarm(at(14, 2))
+
+
+def test_needs_no_alarm_once_ended():
+    session = alarmed(a_session(), at(14))
+    session.end(at(14, 1))
+
+    assert not session.needs_alarm(at(14, 5))
+
+
+def test_ends_by_itself_20_minutes_after_the_alarm_began():
+    session = alarmed(a_session(), at(14), at(14, 2))
+
+    assert not session.needs_auto_end(at(14, 19))
+    assert session.needs_auto_end(at(14, 20))
+
+
+def test_auto_end_counts_the_end_time_as_feierabend():
+    session = alarmed(a_session(), at(14))
+    session.auto_end(at(14, 20))
+
+    assert session.ended_at == at(14)
+
+
+def test_no_auto_end_without_an_alarm():
+    assert not a_session().needs_auto_end(at(20))
+
+
+def test_snooze_postpones_the_alarm_by_ten_minutes():
+    session = alarmed(a_session(), at(14))
+    session.snooze(at(14, 3))
+
+    assert session.snoozed_until == at(14, 13)
+    assert not session.needs_alarm(at(14, 12))
+    assert session.needs_alarm(at(14, 13))
+
+
+def test_after_a_snooze_the_alarm_starts_over():
+    session = alarmed(a_session(), at(14), at(14, 2))
+    session.snooze(at(14, 3))
+    alarmed(session, at(14, 13))
+
+    assert not session.needs_auto_end(at(14, 32))
+    assert session.needs_auto_end(at(14, 33))
+
+
+def test_auto_end_after_a_snooze_counts_the_snoozed_alarm_as_feierabend():
+    session = alarmed(a_session(), at(14))
+    session.snooze(at(14, 3))
+    alarmed(session, at(14, 13))
+    session.auto_end(at(14, 33))
+
+    assert session.ended_at == at(14, 13)
+
+
+def test_snoozes_only_once():
+    session = alarmed(a_session(), at(14))
+    session.snooze(at(14, 3))
+
+    with pytest.raises(CannotSnooze):
+        session.snooze(at(14, 14))
+
+
+def test_cannot_snooze_before_the_alarm():
+    with pytest.raises(CannotSnooze):
+        a_session().snooze(at(13))
+
+
+def test_every_session_has_its_own_secret_for_the_notification_buttons():
+    first, second = a_session(), a_session()
+
+    assert len(first.alarm_token) >= 20
+    assert first.alarm_token != second.alarm_token

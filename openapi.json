@@ -223,6 +223,106 @@
         }
       }
     },
+    "/api/session/current/snooze": {
+      "post": {
+        "summary": "Snooze Session",
+        "description": "The one snooze: the alarm comes back in 10 minutes.",
+        "operationId": "snooze_session",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not due or used"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alarm/{token}/end": {
+      "post": {
+        "summary": "End Session From Notification",
+        "description": "Also fine if the session has ended already: the notification just goes away.",
+        "operationId": "end_session_from_notification",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/alarm/{token}/snooze": {
+      "post": {
+        "summary": "Snooze Session From Notification",
+        "operationId": "snooze_session_from_notification",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Token"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "Not due or used"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/session/current/pauses": {
       "post": {
         "summary": "Add Pause",
@@ -453,6 +553,19 @@
             "type": "array",
             "title": "Pauses",
             "description": "Past, running and planned pauses, by start."
+          },
+          "snoozed_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snoozed Until",
+            "description": "Set once the one snooze is used: the alarm comes back then."
           }
         },
         "type": "object",
@@ -460,7 +573,8 @@
           "started_at",
           "target_minutes",
           "required_break_minutes",
-          "pauses"
+          "pauses",
+          "snoozed_until"
         ],
         "title": "SessionOut",
         "description": "Raw state; clients derive end time and countdown from it with their own clock."

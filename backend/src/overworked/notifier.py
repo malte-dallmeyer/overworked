@@ -1,4 +1,6 @@
 import logging
+from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Protocol
 
 import httpx
@@ -6,8 +8,32 @@ import httpx
 log = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
+class Action:
+    """A button in the notification that POSTs to `url`."""
+
+    label: str
+    url: str
+
+
 class Notifier(Protocol):
-    def send(self, title: str, message: str) -> None: ...
+    def send(
+        self,
+        title: str,
+        message: str,
+        *,
+        key: str | None = None,
+        actions: Sequence[Action] = (),
+        click: str | None = None,
+        urgent: bool = True,
+    ) -> None:
+        """`key` groups messages: a later one replaces the earlier one on the phone.
+        Urgent messages ring (and keep ringing, if the ntfy app is set up for it)."""
+        ...
+
+    def clear(self, key: str) -> None:
+        """Removes the notification sent with `key` from the phone."""
+        ...
 
 
 class NtfyNotifier:
@@ -24,17 +50,39 @@ class NtfyNotifier:
         )
         self._topic = topic
 
-    def send(self, title: str, message: str) -> None:
-        response = self._client.post(
-            f"/{self._topic}",
-            content=message.encode(),
-            headers={"Title": title, "Priority": "max", "Tags": "alarm_clock"},
-        )
+    def send(
+        self,
+        title: str,
+        message: str,
+        *,
+        key: str | None = None,
+        actions: Sequence[Action] = (),
+        click: str | None = None,
+        urgent: bool = True,
+    ) -> None:
+        headers = {"Title": title, "Priority": "max" if urgent else "default"}
+        if urgent:
+            headers["Tags"] = "alarm_clock"
+        if key:
+            headers["X-Sequence-ID"] = key
+        if actions:
+            headers["Actions"] = "; ".join(
+                f"http, {a.label}, {a.url}, method=POST, clear=true" for a in actions
+            )
+        if click:
+            headers["Click"] = click
+        response = self._client.post(f"/{self._topic}", content=message.encode(), headers=headers)
         response.raise_for_status()
+
+    def clear(self, key: str) -> None:
+        self._client.put(f"/{self._topic}/{key}/clear").raise_for_status()
 
 
 class LogNotifier:
     """Used when no ntfy topic is configured."""
 
-    def send(self, title: str, message: str) -> None:
+    def send(self, title: str, message: str, **_options) -> None:
         log.warning("Notification (no ntfy topic configured): %s - %s", title, message)
+
+    def clear(self, key: str) -> None:
+        pass

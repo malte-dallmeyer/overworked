@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, TDataShape } from './client';
 import { client } from './client.gen';
-import type { AddPauseData, AddPauseErrors, AddPauseResponses, ChangePauseData, ChangePauseErrors, ChangePauseResponses, EndSessionData, EndSessionErrors, EndSessionResponses, GetCurrentSessionData, GetCurrentSessionErrors, GetCurrentSessionResponses, HealthData, HealthResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, PauseSessionData, PauseSessionErrors, PauseSessionResponses, RemovePauseData, RemovePauseErrors, RemovePauseResponses, ResumeSessionData, ResumeSessionErrors, ResumeSessionResponses, StartSessionData, StartSessionErrors, StartSessionResponses } from './types.gen';
+import type { AddPauseData, AddPauseErrors, AddPauseResponses, ChangePauseData, ChangePauseErrors, ChangePauseResponses, EndSessionData, EndSessionErrors, EndSessionFromNotificationData, EndSessionFromNotificationErrors, EndSessionFromNotificationResponses, EndSessionResponses, GetCurrentSessionData, GetCurrentSessionErrors, GetCurrentSessionResponses, HealthData, HealthResponses, LoginData, LoginErrors, LoginResponses, LogoutData, LogoutResponses, PauseSessionData, PauseSessionErrors, PauseSessionResponses, RemovePauseData, RemovePauseErrors, RemovePauseResponses, ResumeSessionData, ResumeSessionErrors, ResumeSessionResponses, SnoozeSessionData, SnoozeSessionErrors, SnoozeSessionFromNotificationData, SnoozeSessionFromNotificationErrors, SnoozeSessionFromNotificationResponses, SnoozeSessionResponses, StartSessionData, StartSessionErrors, StartSessionResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -71,6 +71,25 @@ export const resumeSession = <ThrowOnError extends boolean = false>(options?: Op
  * End Session
  */
 export const endSession = <ThrowOnError extends boolean = false>(options?: Options<EndSessionData, ThrowOnError>) => (options?.client ?? client).post<EndSessionResponses, EndSessionErrors, ThrowOnError>({ url: '/api/session/current/end', ...options });
+
+/**
+ * Snooze Session
+ *
+ * The one snooze: the alarm comes back in 10 minutes.
+ */
+export const snoozeSession = <ThrowOnError extends boolean = false>(options?: Options<SnoozeSessionData, ThrowOnError>) => (options?.client ?? client).post<SnoozeSessionResponses, SnoozeSessionErrors, ThrowOnError>({ url: '/api/session/current/snooze', ...options });
+
+/**
+ * End Session From Notification
+ *
+ * Also fine if the session has ended already: the notification just goes away.
+ */
+export const endSessionFromNotification = <ThrowOnError extends boolean = false>(options: Options<EndSessionFromNotificationData, ThrowOnError>) => (options.client ?? client).post<EndSessionFromNotificationResponses, EndSessionFromNotificationErrors, ThrowOnError>({ url: '/api/alarm/{token}/end', ...options });
+
+/**
+ * Snooze Session From Notification
+ */
+export const snoozeSessionFromNotification = <ThrowOnError extends boolean = false>(options: Options<SnoozeSessionFromNotificationData, ThrowOnError>) => (options.client ?? client).post<SnoozeSessionFromNotificationResponses, SnoozeSessionFromNotificationErrors, ThrowOnError>({ url: '/api/alarm/{token}/snooze', ...options });
 
 /**
  * Add Pause

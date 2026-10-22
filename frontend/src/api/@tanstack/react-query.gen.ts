@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { addPause, changePause, endSession, getCurrentSession, health, login, logout, type Options, pauseSession, removePause, resumeSession, startSession } from '../sdk.gen';
-import type { AddPauseData, AddPauseError, AddPauseResponse, ChangePauseData, ChangePauseError, ChangePauseResponse, EndSessionData, EndSessionError, EndSessionResponse, GetCurrentSessionData, GetCurrentSessionError, GetCurrentSessionResponse, HealthData, HealthResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, PauseSessionData, PauseSessionError, PauseSessionResponse, RemovePauseData, RemovePauseError, RemovePauseResponse, ResumeSessionData, ResumeSessionError, ResumeSessionResponse, StartSessionData, StartSessionError, StartSessionResponse } from '../types.gen';
+import { addPause, changePause, endSession, endSessionFromNotification, getCurrentSession, health, login, logout, type Options, pauseSession, removePause, resumeSession, snoozeSession, snoozeSessionFromNotification, startSession } from '../sdk.gen';
+import type { AddPauseData, AddPauseError, AddPauseResponse, ChangePauseData, ChangePauseError, ChangePauseResponse, EndSessionData, EndSessionError, EndSessionFromNotificationData, EndSessionFromNotificationError, EndSessionFromNotificationResponse, EndSessionResponse, GetCurrentSessionData, GetCurrentSessionError, GetCurrentSessionResponse, HealthData, HealthResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, PauseSessionData, PauseSessionError, PauseSessionResponse, RemovePauseData, RemovePauseError, RemovePauseResponse, ResumeSessionData, ResumeSessionError, ResumeSessionResponse, SnoozeSessionData, SnoozeSessionError, SnoozeSessionFromNotificationData, SnoozeSessionFromNotificationError, SnoozeSessionFromNotificationResponse, SnoozeSessionResponse, StartSessionData, StartSessionError, StartSessionResponse } from '../types.gen';
 
 /**
  * Login
@@ -167,6 +167,61 @@ export const endSessionMutation = (options?: Partial<Options<EndSessionData>>): 
     const mutationOptions: UseMutationOptions<EndSessionResponse, EndSessionError, Options<EndSessionData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await endSession({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Snooze Session
+ *
+ * The one snooze: the alarm comes back in 10 minutes.
+ */
+export const snoozeSessionMutation = (options?: Partial<Options<SnoozeSessionData>>): UseMutationOptions<SnoozeSessionResponse, SnoozeSessionError, Options<SnoozeSessionData>> => {
+    const mutationOptions: UseMutationOptions<SnoozeSessionResponse, SnoozeSessionError, Options<SnoozeSessionData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await snoozeSession({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * End Session From Notification
+ *
+ * Also fine if the session has ended already: the notification just goes away.
+ */
+export const endSessionFromNotificationMutation = (options?: Partial<Options<EndSessionFromNotificationData>>): UseMutationOptions<EndSessionFromNotificationResponse, EndSessionFromNotificationError, Options<EndSessionFromNotificationData>> => {
+    const mutationOptions: UseMutationOptions<EndSessionFromNotificationResponse, EndSessionFromNotificationError, Options<EndSessionFromNotificationData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await endSessionFromNotification({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Snooze Session From Notification
+ */
+export const snoozeSessionFromNotificationMutation = (options?: Partial<Options<SnoozeSessionFromNotificationData>>): UseMutationOptions<SnoozeSessionFromNotificationResponse, SnoozeSessionFromNotificationError, Options<SnoozeSessionFromNotificationData>> => {
+    const mutationOptions: UseMutationOptions<SnoozeSessionFromNotificationResponse, SnoozeSessionFromNotificationError, Options<SnoozeSessionFromNotificationData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await snoozeSessionFromNotification({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

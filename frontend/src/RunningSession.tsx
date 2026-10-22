@@ -1,4 +1,4 @@
-import { Coffee, ListPlus, Moon, Play } from 'lucide-react'
+import { AlarmClock, Coffee, ListPlus, Moon, Play } from 'lucide-react'
 import { useState } from 'react'
 import type { PauseOut, SessionOut } from './api'
 import { PausePanel } from './PausePanel'
@@ -15,9 +15,10 @@ type RunningSessionProps = {
   onPause: () => void
   onResume: () => void
   onEnd: () => void
+  onSnooze: () => void
 }
 
-export function RunningSession({ session, onPause, onResume, onEnd }: RunningSessionProps) {
+export function RunningSession({ session, onPause, onResume, onEnd, onSnooze }: RunningSessionProps) {
   const now = useNow()
   const [sheet, setSheet] = useState<{ open: boolean; edit?: PauseOut }>({ open: false })
 
@@ -26,6 +27,8 @@ export function RunningSession({ session, onPause, onResume, onEnd }: RunningSes
   const remaining = remainingMs(session, now)
   const missingBreak = missingBreakMs(session, now)
   const pause = currentPause(session, now)
+  const snoozeLeft = session.snoozed_until ? Math.max(0, Date.parse(session.snoozed_until) - now.getTime()) : 0
+  const canSnooze = remaining === 0 && !session.snoozed_until && !pause
   useSky(dayProgress(start, end, now))
 
   return (
@@ -53,6 +56,11 @@ export function RunningSession({ session, onPause, onResume, onEnd }: RunningSes
               <span className="dial-label">noch</span>
               <strong className="countdown">{formatCountdown(remaining)}</strong>
             </>
+          ) : snoozeLeft > 0 ? (
+            <>
+              <span className="dial-label">Snooze</span>
+              <strong className="countdown">{formatCountdown(snoozeLeft)}</strong>
+            </>
           ) : (
             <strong className="countdown done">Feierabend!</strong>
           )}
@@ -75,6 +83,11 @@ export function RunningSession({ session, onPause, onResume, onEnd }: RunningSes
         <button className="secondary" onClick={() => setSheet({ open: true })}>
           <ListPlus aria-hidden size={20} /> Pausen{session.pauses.length > 0 && ` (${session.pauses.length})`}
         </button>
+        {canSnooze && (
+          <button className="secondary wide" onClick={onSnooze}>
+            <AlarmClock aria-hidden size={20} /> 10 min später
+          </button>
+        )}
         <button className="primary wide" onClick={onEnd}>
           <Moon aria-hidden size={20} /> Feierabend machen
         </button>

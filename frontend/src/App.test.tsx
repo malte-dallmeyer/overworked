@@ -12,6 +12,7 @@ const running = {
   target_minutes: 450,
   required_break_minutes: 0,
   pauses: [],
+  snoozed_until: null,
 }
 
 const earlierPause = { id: 1, started_at: '2026-10-22T07:00:00Z', ended_at: '2026-10-22T07:10:00Z' }
@@ -430,4 +431,42 @@ it('asks for the password again once the login has expired', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Pause' }))
 
   await expect.element(screen.getByLabelText('Passwort')).toBeVisible()
+})
+
+// --- Alarm: one snooze ---
+
+// 5 h from 06:00Z: Feierabend is now (11:00Z).
+const due = { ...running, target_minutes: 300 }
+
+it('offers to snooze once Feierabend is reached', async () => {
+  givenCurrentSession(due)
+  worker.use(
+    http.post('/api/session/current/snooze', () =>
+      HttpResponse.json({ ...due, snoozed_until: '2026-10-22T11:10:00Z' }),
+    ),
+  )
+  const screen = await render(<App />)
+  await expect.element(screen.getByText('Feierabend!')).toBeVisible()
+
+  await userEvent.click(screen.getByRole('button', { name: '10 min später' }))
+
+  await expect.element(screen.getByText('Snooze', { exact: true })).toBeVisible()
+  await expect.element(screen.getByText('0:10', { exact: true })).toBeVisible()
+  await expect.element(screen.getByRole('button', { name: '10 min später' })).not.toBeInTheDocument()
+})
+
+it('offers no snooze before Feierabend', async () => {
+  givenCurrentSession(running)
+  const screen = await render(<App />)
+
+  await expect.element(screen.getByText('Feierabend um 15:30')).toBeVisible()
+  await expect.element(screen.getByRole('button', { name: '10 min später' })).not.toBeInTheDocument()
+})
+
+it('offers no second snooze', async () => {
+  givenCurrentSession({ ...due, snoozed_until: '2026-10-22T10:50:00Z' })
+  const screen = await render(<App />)
+
+  await expect.element(screen.getByText('Feierabend!')).toBeVisible()
+  await expect.element(screen.getByRole('button', { name: '10 min später' })).not.toBeInTheDocument()
 })

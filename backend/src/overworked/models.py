@@ -1,3 +1,4 @@
+import secrets
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import DateTime, ForeignKey, Index, String, TypeDecorator, text
@@ -38,12 +39,21 @@ LEGAL_BREAKS = (
 )
 MIN_LEGAL_BREAK_PART = timedelta(minutes=15)
 
+ALARM_REPEAT = timedelta(minutes=2)
+SNOOZE = timedelta(minutes=10)
+# Unconfirmed for this long after the alarm began: the session ends by itself.
+AUTO_END_AFTER = timedelta(minutes=20)
+
 
 class InvalidStart(ValueError):
     pass
 
 
 class InvalidPause(ValueError):
+    pass
+
+
+class CannotSnooze(ValueError):
     pass
 
 
@@ -71,7 +81,12 @@ class WorkSession(Base):
     started_at: Mapped[datetime] = mapped_column(UTCDateTime)
     target_minutes: Mapped[int]
     ended_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
-    alarm_sent_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
+    # Secret in the URLs of the notification buttons, which have no login cookie.
+    alarm_token: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    # First and latest alarm of the current round; a snooze starts a new round.
+    alarm_started_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
+    last_alarm_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
+    snoozed_until: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
     pauses: Mapped[list["Pause"]] = relationship(
         order_by="Pause.started_at", cascade="all, delete-orphan", lazy="selectin"
     )
@@ -86,7 +101,12 @@ class WorkSession(Base):
             raise InvalidStart("start is in the future")
         if started_at < now - MAX_BACKDATING:
             raise InvalidStart("start is more than 24 hours ago")
-        return cls(user_id=user_id, started_at=started_at, target_minutes=target_minutes)
+        return cls(
+            user_id=user_id,
+            started_at=started_at,
+            target_minutes=target_minutes,
+            alarm_token=secrets.token_urlsafe(24),
+        )
 
     @property
     def is_active(self) -> bool:
@@ -143,14 +163,47 @@ class WorkSession(Base):
             + self.missing_break(now)
         )
 
+    def alarm_at(self, now: datetime) -> datetime:
+        """Feierabend, or the end of the snooze if that is later."""
+        end = self.end_at(now)
+        return max(end, self.snoozed_until) if self.snoozed_until else end
+
     def is_due(self, now: datetime) -> bool:
-        return self.is_active and not self.is_paused(now) and now >= self.end_at(now)
+        return self.is_active and not self.is_paused(now) and now >= self.alarm_at(now)
 
     def needs_alarm(self, now: datetime) -> bool:
-        return self.is_due(now) and self.alarm_sent_at is None
+        """Due, and the first alarm of the round or the last one long enough ago."""
+        return (
+            self.is_due(now)
+            and not self.needs_auto_end(now)
+            and (self.last_alarm_at is None or now - self.last_alarm_at >= ALARM_REPEAT)
+        )
 
     def mark_alarm_sent(self, now: datetime) -> None:
-        self.alarm_sent_at = now
+        self.alarm_started_at = self.alarm_started_at or now
+        self.last_alarm_at = now
+
+    @property
+    def can_snooze(self) -> bool:
+        return self.snoozed_until is None
+
+    def snooze(self, now: datetime) -> None:
+        """Once per session: the alarm comes back after SNOOZE and starts a new round."""
+        if not self.is_due(now) or not self.can_snooze:
+            raise CannotSnooze("only once, and only after the alarm")
+        self.snoozed_until = now + SNOOZE
+        self.alarm_started_at = self.last_alarm_at = None
+
+    def needs_auto_end(self, now: datetime) -> bool:
+        return (
+            self.is_active
+            and self.alarm_started_at is not None
+            and now >= self.alarm_started_at + AUTO_END_AFTER
+        )
+
+    def auto_end(self, now: datetime) -> None:
+        """Nobody confirmed: probably work stopped long ago, so Feierabend counts from the alarm."""
+        self.end(min(self.alarm_at(now), now))
 
     def pause(self, now: datetime) -> None:
         """Starts a spontaneous pause; its end is set by resume()."""

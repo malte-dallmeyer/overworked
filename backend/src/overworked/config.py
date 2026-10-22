@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     ntfy_token: str | None = None
 
     alarm_check_interval_seconds: float = 15
+    # Address of this instance, e.g. https://overworked.example.com. Needed for the buttons in
+    # the notification and for opening the app from it; without it there are none.
+    public_url: str | None = None
 
     # Login. Without a password the API is open, which is meant for local development only.
     password: SecretStr | None = None

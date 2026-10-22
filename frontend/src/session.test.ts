@@ -10,6 +10,7 @@ const running = {
   target_minutes: 450,
   required_break_minutes: 0,
   pauses: [],
+  snoozed_until: null,
 }
 
 // An earlier 10-minute pause, and a spontaneous pause running since 10:00.

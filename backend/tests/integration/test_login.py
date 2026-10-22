@@ -3,6 +3,7 @@ from datetime import timedelta
 import pytest
 from fastapi.testclient import TestClient
 
+from overworked.alarm import send_due_alarms
 from overworked.config import Settings
 from overworked.main import create_app
 
@@ -13,7 +14,10 @@ SECRET_KEY = "k" * 32
 @pytest.fixture
 def settings(tmp_path) -> Settings:
     return Settings(
-        database_url=f"sqlite:///{tmp_path / 'test.db'}", password=PASSWORD, secret_key=SECRET_KEY
+        database_url=f"sqlite:///{tmp_path / 'test.db'}",
+        password=PASSWORD,
+        secret_key=SECRET_KEY,
+        public_url="https://overworked.example",
     )
 
 
@@ -93,3 +97,17 @@ def test_logging_out_ends_the_login(client):
 
     assert client.post("/api/logout").status_code == 204
     assert client.get("/api/session/current").status_code == 401
+
+
+def test_buttons_in_the_notification_work_without_login(app, client, clock, notifier):
+    """ntfy calls them without the login cookie; the secret in the URL is enough."""
+    log_in(client)
+    client.post("/api/session", json={"target_minutes": 360})
+    clock.advance(timedelta(hours=6))
+    send_due_alarms(app.state.session_factory, clock(), notifier, "https://overworked.example")
+    end_url = notifier.messages[0].actions[0].url.removeprefix("https://overworked.example")
+    client.post("/api/logout")
+
+    assert client.post(end_url).status_code == 204
+    log_in(client)
+    assert client.get("/api/session/current").json() is None

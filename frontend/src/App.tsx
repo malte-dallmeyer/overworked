@@ -5,6 +5,7 @@ import {
   getCurrentSessionOptions,
   pauseSessionMutation,
   resumeSessionMutation,
+  snoozeSessionMutation,
   startSessionMutation,
 } from './api/@tanstack/react-query.gen'
 import { isUnauthorized } from './apiError'
@@ -22,6 +23,7 @@ export default function App() {
   const start = useMutation({ ...startSessionMutation(), onSuccess: cache.show, onError: cache.refetch })
   const pause = useMutation({ ...pauseSessionMutation(), onSuccess: cache.show, onError: cache.refetch })
   const resume = useMutation({ ...resumeSessionMutation(), onSuccess: cache.show, onError: cache.refetch })
+  const snooze = useMutation({ ...snoozeSessionMutation(), onSuccess: cache.show, onError: cache.refetch })
   const end = useMutation({ ...endSessionMutation(), onSuccess: () => cache.show(null), onError: cache.refetch })
 
   return (
@@ -51,6 +53,7 @@ export default function App() {
             onPause={() => pause.mutate({})}
             onResume={() => resume.mutate({})}
             onEnd={() => end.mutate({})}
+            onSnooze={() => snooze.mutate({})}
           />
         ) : (
           <Morning>

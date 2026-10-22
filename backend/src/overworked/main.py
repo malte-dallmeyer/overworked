@@ -43,7 +43,13 @@ def create_app(
         loop = None
         if run_alarm_loop:
             loop = asyncio.create_task(
-                alarm_loop(session_factory, clock, notifier, settings.alarm_check_interval_seconds)
+                alarm_loop(
+                    session_factory,
+                    clock,
+                    notifier,
+                    settings.alarm_check_interval_seconds,
+                    settings.public_url,
+                )
             )
         yield
         if loop:

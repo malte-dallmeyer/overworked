@@ -5,6 +5,9 @@ services:
     image: ${OVERWORKED_IMAGE:?set OVERWORKED_IMAGE in .env}
     restart: unless-stopped
     env_file: .env
+    environment:
+      # For the buttons in the notification and opening the app from it.
+      OVERWORKED_PUBLIC_URL: https://${OVERWORKED_DOMAIN:?set OVERWORKED_DOMAIN in .env}
     volumes:
       - data:/data
 

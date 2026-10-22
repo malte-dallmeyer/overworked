@@ -21,6 +21,7 @@ def test_starting_a_session_returns_it(client):
         "target_minutes": 450,
         "required_break_minutes": 30,
         "pauses": [],
+        "snoozed_until": None,
     }
 
 

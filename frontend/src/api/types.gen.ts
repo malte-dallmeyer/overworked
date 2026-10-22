@@ -84,6 +84,12 @@ export type SessionOut = {
      * Past, running and planned pauses, by start.
      */
     pauses: Array<PauseOut>;
+    /**
+     * Snoozed Until
+     *
+     * Set once the one snooze is used: the alarm comes back then.
+     */
+    snoozed_until: string | null;
 };
 
 /**
@@ -321,6 +327,99 @@ export type EndSessionResponses = {
 };
 
 export type EndSessionResponse = EndSessionResponses[keyof EndSessionResponses];
+
+export type SnoozeSessionData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/session/current/snooze';
+};
+
+export type SnoozeSessionErrors = {
+    /**
+     * Not due or used
+     */
+    409: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SnoozeSessionError = SnoozeSessionErrors[keyof SnoozeSessionErrors];
+
+export type SnoozeSessionResponses = {
+    /**
+     * Successful Response
+     */
+    200: SessionOut;
+};
+
+export type SnoozeSessionResponse = SnoozeSessionResponses[keyof SnoozeSessionResponses];
+
+export type EndSessionFromNotificationData = {
+    body?: never;
+    path: {
+        /**
+         * Token
+         */
+        token: string;
+    };
+    query?: never;
+    url: '/api/alarm/{token}/end';
+};
+
+export type EndSessionFromNotificationErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type EndSessionFromNotificationError = EndSessionFromNotificationErrors[keyof EndSessionFromNotificationErrors];
+
+export type EndSessionFromNotificationResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type EndSessionFromNotificationResponse = EndSessionFromNotificationResponses[keyof EndSessionFromNotificationResponses];
+
+export type SnoozeSessionFromNotificationData = {
+    body?: never;
+    path: {
+        /**
+         * Token
+         */
+        token: string;
+    };
+    query?: never;
+    url: '/api/alarm/{token}/snooze';
+};
+
+export type SnoozeSessionFromNotificationErrors = {
+    /**
+     * Not due or used
+     */
+    409: unknown;
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type SnoozeSessionFromNotificationError = SnoozeSessionFromNotificationErrors[keyof SnoozeSessionFromNotificationErrors];
+
+export type SnoozeSessionFromNotificationResponses = {
+    /**
+     * Successful Response
+     */
+    204: void;
+};
+
+export type SnoozeSessionFromNotificationResponse = SnoozeSessionFromNotificationResponses[keyof SnoozeSessionFromNotificationResponses];
 
 export type AddPauseData = {
     body: PauseIn;

@@ -1,7 +1,8 @@
+import logging
 from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import AwareDatetime, BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -10,7 +11,17 @@ from sqlalchemy.orm import Session
 from overworked.auth import get_current_user
 from overworked.clock import Clock, get_clock
 from overworked.db import get_db
-from overworked.models import InvalidPause, InvalidStart, Pause, User, WorkSession
+from overworked.models import (
+    CannotSnooze,
+    InvalidPause,
+    InvalidStart,
+    Pause,
+    User,
+    WorkSession,
+)
+from overworked.notifier import Notifier
+
+log = logging.getLogger(__name__)
 
 # Operation IDs are the function names, so the generated frontend client gets
 # readable names (startSession instead of start_session_api_session_post).
@@ -19,6 +30,13 @@ router = APIRouter(prefix="/api", generate_unique_id_function=lambda route: rout
 Db = Annotated[Session, Depends(get_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
 Now = Annotated[Clock, Depends(get_clock)]
+
+
+def get_notifier(request: Request) -> Notifier:
+    return request.app.state.notifier
+
+
+Notify = Annotated[Notifier, Depends(get_notifier)]
 
 
 class StartSession(BaseModel):
@@ -49,6 +67,9 @@ class SessionOut(BaseModel):
         "15 min (or the running one) count towards it; what is missing extends the end."
     )
     pauses: list[PauseOut] = Field(description="Past, running and planned pauses, by start.")
+    snoozed_until: datetime | None = Field(
+        description="Set once the one snooze is used: the alarm comes back then."
+    )
 
     @classmethod
     def of(cls, session: WorkSession) -> "SessionOut":
@@ -60,6 +81,7 @@ class SessionOut(BaseModel):
                 PauseOut(id=p.id, started_at=p.started_at, ended_at=p.ended_at)
                 for p in sorted(session.pauses, key=lambda p: p.started_at)
             ],
+            snoozed_until=session.snoozed_until,
         )
 
 
@@ -120,9 +142,73 @@ def resume_session(db: Db, user: CurrentUser, clock: Now) -> SessionOut:
     return SessionOut.of(session)
 
 
+def stop_ringing(notifier: Notifier, session: WorkSession) -> None:
+    """Takes the alarm off the phone; confirmed in the app, so it must not keep ringing."""
+    try:
+        notifier.clear(session.alarm_token)
+    except Exception:
+        log.exception("Clearing the alarm of session %s failed", session.id)
+
+
 @router.post("/session/current/end", status_code=status.HTTP_204_NO_CONTENT)
-def end_session(db: Db, user: CurrentUser, clock: Now) -> Response:
-    get_active(db, user).end(clock())
+def end_session(db: Db, user: CurrentUser, clock: Now, notifier: Notify) -> Response:
+    session = get_active(db, user)
+    ringing = session.alarm_started_at is not None
+    session.end(clock())
+    db.commit()
+    if ringing:
+        stop_ringing(notifier, session)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+def cannot_snooze(error: CannotSnooze) -> HTTPException:
+    return HTTPException(status.HTTP_409_CONFLICT, str(error))
+
+
+@router.post("/session/current/snooze", responses={409: {"description": "Not due or used"}})
+def snooze_session(db: Db, user: CurrentUser, clock: Now, notifier: Notify) -> SessionOut:
+    """The one snooze: the alarm comes back in 10 minutes."""
+    session = get_active(db, user)
+    ringing = session.alarm_started_at is not None
+    try:
+        session.snooze(clock())
+    except CannotSnooze as error:
+        raise cannot_snooze(error) from None
+    db.commit()
+    if ringing:
+        stop_ringing(notifier, session)
+    return SessionOut.of(session)
+
+
+# Buttons in the notification. ntfy sends no login cookie, so the session's secret in the
+# URL is the authorization; it allows nothing but these two actions.
+
+
+def get_by_alarm_token(db: Session, token: str) -> WorkSession:
+    session = db.scalar(select(WorkSession).where(WorkSession.alarm_token == token))
+    if session is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Unknown alarm")
+    return session
+
+
+@router.post("/alarm/{token}/end", status_code=status.HTTP_204_NO_CONTENT)
+def end_session_from_notification(token: str, db: Db, clock: Now) -> Response:
+    """Also fine if the session has ended already: the notification just goes away."""
+    get_by_alarm_token(db, token).end(clock())
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/alarm/{token}/snooze",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses={409: {"description": "Not due or used"}},
+)
+def snooze_session_from_notification(token: str, db: Db, clock: Now) -> Response:
+    try:
+        get_by_alarm_token(db, token).snooze(clock())
+    except CannotSnooze as error:
+        raise cannot_snooze(error) from None
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
