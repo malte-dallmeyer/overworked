@@ -22,6 +22,7 @@ def test_operations_are_named_after_their_functions():
         "resume_session",
         "end_session",
         "snooze_session",
+        "change_target",
         "end_session_from_notification",
         "snooze_session_from_notification",
         "add_pause",

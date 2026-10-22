@@ -57,6 +57,13 @@ class CannotSnooze(ValueError):
     pass
 
 
+class InvalidTarget(ValueError):
+    pass
+
+
+MAX_TARGET_MINUTES = 24 * 60
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -182,6 +189,15 @@ class WorkSession(Base):
     def mark_alarm_sent(self, now: datetime) -> None:
         self.alarm_started_at = self.alarm_started_at or now
         self.last_alarm_at = now
+
+    def change_target(self, target_minutes: int, now: datetime) -> None:
+        """Adjusts the remaining time. If the end moves past `now` again, a ringing alarm stops
+        and comes back at the new end."""
+        if not 1 <= target_minutes <= MAX_TARGET_MINUTES:
+            raise InvalidTarget("target must be between 1 minute and 24 hours")
+        self.target_minutes = target_minutes
+        if not self.is_due(now):
+            self.alarm_started_at = self.last_alarm_at = None
 
     @property
     def can_snooze(self) -> bool:

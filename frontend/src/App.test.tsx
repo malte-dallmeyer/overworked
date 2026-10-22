@@ -13,6 +13,10 @@ const running = {
   required_break_minutes: 0,
   pauses: [],
   snoozed_until: null,
+  legal_breaks: [
+    { after_minutes: 540, break_minutes: 45 },
+    { after_minutes: 360, break_minutes: 30 },
+  ],
 }
 
 const earlierPause = { id: 1, started_at: '2026-10-22T07:00:00Z', ended_at: '2026-10-22T07:10:00Z' }
@@ -510,6 +514,73 @@ it('shows the start screen once another device ended the session', async () => {
   givenCurrentSession(running)
   worker.use(sse('/api/session/events', ({ client }) => client.send({ data: 'null' })))
   const screen = await render(<App />)
+
+  await expect.element(screen.getByRole('button', { name: 'Jetzt starten' })).toBeVisible()
+})
+
+// --- Adjusting the remaining time ---
+
+// 7:30 h + 30 min legal break from 08:00 Berlin: Feierabend 16:00.
+const adjustable = { ...running, required_break_minutes: 30 }
+
+async function openAdjust(screen: Screen) {
+  await userEvent.click(screen.getByRole('button', { name: 'Restzeit anpassen' }))
+}
+
+it('adjusts the remaining time in steps and previews the new Feierabend', async () => {
+  givenCurrentSession(adjustable)
+  const calls = capture('put', '/api/session/current/target', { ...adjustable, target_minutes: 465 })
+  const screen = await render(<App />)
+  await openAdjust(screen)
+
+  await userEvent.click(screen.getByRole('button', { name: '15 Minuten später' }))
+  await expect.element(screen.getByText('Neuer Feierabend um 16:15')).toBeVisible()
+  await expect.element(screen.getByRole('alert')).not.toBeInTheDocument()
+  await userEvent.click(screen.getByRole('button', { name: 'Übernehmen' }))
+
+  await expect.element(screen.getByText('Feierabend um 16:15')).toBeVisible()
+  expect(calls[0].body).toEqual({ target_minutes: 465 })
+})
+
+it('sets Feierabend to a time', async () => {
+  givenCurrentSession(adjustable)
+  const calls = capture('put', '/api/session/current/target', { ...adjustable, target_minutes: 510 })
+  const screen = await render(<App />)
+  await openAdjust(screen)
+
+  await userEvent.fill(screen.getByLabelText('Neue Uhrzeit'), '17:00')
+  await expect.element(screen.getByText('Neuer Feierabend um 17:00')).toBeVisible()
+  await userEvent.click(screen.getByRole('button', { name: 'Übernehmen' }))
+
+  await expect.element(screen.getByText('Feierabend um 17:00')).toBeVisible()
+  expect(calls[0].body).toEqual({ target_minutes: 510 })
+})
+
+it('urges Feierabend before extending after the alarm', async () => {
+  givenCurrentSession(due)
+  const calls = capture('put', '/api/session/current/target', { ...due, target_minutes: 305 })
+  const screen = await render(<App />)
+  await openAdjust(screen)
+
+  await userEvent.click(screen.getByRole('button', { name: '5 Minuten später' }))
+
+  await expect
+    .element(screen.getByRole('alert'))
+    .toHaveTextContent('Deine Sollzeit ist erreicht. Mach lieber Feierabend – die Arbeit ist morgen auch noch da.')
+  await expect.element(screen.getByRole('button', { name: 'Lieber Feierabend machen' })).toBeVisible()
+  await userEvent.click(screen.getByRole('button', { name: 'Trotzdem verlängern' }))
+  await expect.poll(() => calls.length).toBe(1)
+  expect(calls[0].body).toEqual({ target_minutes: 305 })
+})
+
+it('ends the session from the warning', async () => {
+  givenCurrentSession(due)
+  worker.use(http.post('/api/session/current/end', () => new HttpResponse(null, { status: 204 })))
+  const screen = await render(<App />)
+  await openAdjust(screen)
+  await userEvent.click(screen.getByRole('button', { name: '5 Minuten später' }))
+
+  await userEvent.click(screen.getByRole('button', { name: 'Lieber Feierabend machen' }))
 
   await expect.element(screen.getByRole('button', { name: 'Jetzt starten' })).toBeVisible()
 })

@@ -3,8 +3,8 @@
 import { type DefaultError, queryOptions, type UseMutationOptions } from '@tanstack/react-query';
 
 import { client } from '../client.gen';
-import { addPause, changePause, endSession, endSessionFromNotification, getCurrentSession, health, login, logout, type Options, pauseSession, removePause, resumeSession, snoozeSession, snoozeSessionFromNotification, startSession } from '../sdk.gen';
-import type { AddPauseData, AddPauseError, AddPauseResponse, ChangePauseData, ChangePauseError, ChangePauseResponse, EndSessionData, EndSessionError, EndSessionFromNotificationData, EndSessionFromNotificationError, EndSessionFromNotificationResponse, EndSessionResponse, GetCurrentSessionData, GetCurrentSessionError, GetCurrentSessionResponse, HealthData, HealthResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, PauseSessionData, PauseSessionError, PauseSessionResponse, RemovePauseData, RemovePauseError, RemovePauseResponse, ResumeSessionData, ResumeSessionError, ResumeSessionResponse, SnoozeSessionData, SnoozeSessionError, SnoozeSessionFromNotificationData, SnoozeSessionFromNotificationError, SnoozeSessionFromNotificationResponse, SnoozeSessionResponse, StartSessionData, StartSessionError, StartSessionResponse } from '../types.gen';
+import { addPause, changePause, changeTarget, endSession, endSessionFromNotification, getCurrentSession, health, login, logout, type Options, pauseSession, removePause, resumeSession, snoozeSession, snoozeSessionFromNotification, startSession } from '../sdk.gen';
+import type { AddPauseData, AddPauseError, AddPauseResponse, ChangePauseData, ChangePauseError, ChangePauseResponse, ChangeTargetData, ChangeTargetError, ChangeTargetResponse, EndSessionData, EndSessionError, EndSessionFromNotificationData, EndSessionFromNotificationError, EndSessionFromNotificationResponse, EndSessionResponse, GetCurrentSessionData, GetCurrentSessionError, GetCurrentSessionResponse, HealthData, HealthResponse, LoginData, LoginError, LoginResponse, LogoutData, LogoutResponse, PauseSessionData, PauseSessionError, PauseSessionResponse, RemovePauseData, RemovePauseError, RemovePauseResponse, ResumeSessionData, ResumeSessionError, ResumeSessionResponse, SnoozeSessionData, SnoozeSessionError, SnoozeSessionFromNotificationData, SnoozeSessionFromNotificationError, SnoozeSessionFromNotificationResponse, SnoozeSessionResponse, StartSessionData, StartSessionError, StartSessionResponse } from '../types.gen';
 
 /**
  * Login
@@ -167,6 +167,25 @@ export const endSessionMutation = (options?: Partial<Options<EndSessionData>>): 
     const mutationOptions: UseMutationOptions<EndSessionResponse, EndSessionError, Options<EndSessionData>> = {
         mutationFn: async (fnOptions) => {
             const { data } = await endSession({
+                ...options,
+                ...fnOptions,
+                throwOnError: true
+            });
+            return data;
+        }
+    };
+    return mutationOptions;
+};
+
+/**
+ * Change Target
+ *
+ * Adjusts the remaining time. Extending after the alarm is allowed; the app warns first.
+ */
+export const changeTargetMutation = (options?: Partial<Options<ChangeTargetData>>): UseMutationOptions<ChangeTargetResponse, ChangeTargetError, Options<ChangeTargetData>> => {
+    const mutationOptions: UseMutationOptions<ChangeTargetResponse, ChangeTargetError, Options<ChangeTargetData>> = {
+        mutationFn: async (fnOptions) => {
+            const { data } = await changeTarget({
                 ...options,
                 ...fnOptions,
                 throwOnError: true

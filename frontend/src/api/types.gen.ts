@@ -5,6 +5,16 @@ export type ClientOptions = {
 };
 
 /**
+ * ChangeTarget
+ */
+export type ChangeTarget = {
+    /**
+     * Target Minutes
+     */
+    target_minutes: number;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -12,6 +22,22 @@ export type HttpValidationError = {
      * Detail
      */
     detail?: Array<ValidationError>;
+};
+
+/**
+ * LegalBreakOut
+ */
+export type LegalBreakOut = {
+    /**
+     * After Minutes
+     *
+     * Applies to targets longer than this.
+     */
+    after_minutes: number;
+    /**
+     * Break Minutes
+     */
+    break_minutes: number;
 };
 
 /**
@@ -90,6 +116,12 @@ export type SessionOut = {
      * Set once the one snooze is used: the alarm comes back then.
      */
     snoozed_until: string | null;
+    /**
+     * Legal Breaks
+     *
+     * ArbZG §4 rules, longest first, to preview a changed target.
+     */
+    legal_breaks: Array<LegalBreakOut>;
 };
 
 /**
@@ -350,6 +382,31 @@ export type EndSessionResponses = {
 };
 
 export type EndSessionResponse = EndSessionResponses[keyof EndSessionResponses];
+
+export type ChangeTargetData = {
+    body: ChangeTarget;
+    path?: never;
+    query?: never;
+    url: '/api/session/current/target';
+};
+
+export type ChangeTargetErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type ChangeTargetError = ChangeTargetErrors[keyof ChangeTargetErrors];
+
+export type ChangeTargetResponses = {
+    /**
+     * Successful Response
+     */
+    200: SessionOut;
+};
+
+export type ChangeTargetResponse = ChangeTargetResponses[keyof ChangeTargetResponses];
 
 export type SnoozeSessionData = {
     body?: never;

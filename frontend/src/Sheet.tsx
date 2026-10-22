@@ -2,7 +2,15 @@ import { X } from 'lucide-react'
 import { useEffect, useRef, type ReactNode } from 'react'
 
 /** Bottom sheet as a native modal dialog: focus handling and Escape come for free. */
-export function PauseSheet({ open, onClose, children }: { open: boolean; onClose: () => void; children: ReactNode }) {
+type SheetProps = {
+  open: boolean
+  onClose: () => void
+  /** Id of the heading inside, which names the dialog. */
+  labelledBy: string
+  children: ReactNode
+}
+
+export function Sheet({ open, onClose, labelledBy, children }: SheetProps) {
   const dialog = useRef<HTMLDialogElement>(null)
 
   useEffect(() => {
@@ -16,7 +24,7 @@ export function PauseSheet({ open, onClose, children }: { open: boolean; onClose
     <dialog
       ref={dialog}
       className="sheet"
-      aria-labelledby="pauses-heading"
+      aria-labelledby={labelledBy}
       onClose={onClose}
       // A click on the backdrop lands on the dialog element itself.
       onClick={(event) => event.target === event.currentTarget && onClose()}

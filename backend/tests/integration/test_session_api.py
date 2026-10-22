@@ -22,6 +22,10 @@ def test_starting_a_session_returns_it(client):
         "required_break_minutes": 30,
         "pauses": [],
         "snoozed_until": None,
+        "legal_breaks": [
+            {"after_minutes": 540, "break_minutes": 45},
+            {"after_minutes": 360, "break_minutes": 30},
+        ],
     }
 
 
@@ -261,3 +265,34 @@ def test_unknown_pause_is_not_found(client):
         ).status_code
         == 404
     )
+
+
+# --- Adjusting the remaining time ---
+
+
+def test_changing_the_target_of_the_running_session(client):
+    start(client, target_minutes=450)
+
+    response = client.put("/api/session/current/target", json={"target_minutes": 465})
+
+    assert response.status_code == 200
+    assert response.json()["target_minutes"] == 465
+    assert response.json()["required_break_minutes"] == 30
+
+
+def test_rejects_an_impossible_target(client):
+    start(client)
+
+    assert client.put("/api/session/current/target", json={"target_minutes": 0}).status_code == 422
+
+
+def test_session_tells_the_legal_break_rules(client):
+    """So clients can preview a changed target, thresholds included, without copying them."""
+    start(client)
+
+    rules = client.get("/api/session/current").json()["legal_breaks"]
+
+    assert rules == [
+        {"after_minutes": 540, "break_minutes": 45},
+        {"after_minutes": 360, "break_minutes": 30},
+    ]

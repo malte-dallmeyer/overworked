@@ -15,9 +15,12 @@ from overworked.clock import Clock, get_clock
 from overworked.db import get_db
 from overworked.events import changes
 from overworked.models import (
+    LEGAL_BREAKS,
+    MAX_TARGET_MINUTES,
     CannotSnooze,
     InvalidPause,
     InvalidStart,
+    InvalidTarget,
     Pause,
     User,
     WorkSession,
@@ -49,6 +52,15 @@ class StartSession(BaseModel):
     )
 
 
+class ChangeTarget(BaseModel):
+    target_minutes: int = Field(ge=1, le=MAX_TARGET_MINUTES)
+
+
+class LegalBreakOut(BaseModel):
+    after_minutes: int = Field(description="Applies to targets longer than this.")
+    break_minutes: int
+
+
 class PauseIn(BaseModel):
     started_at: AwareDatetime
     ended_at: AwareDatetime
@@ -73,6 +85,9 @@ class SessionOut(BaseModel):
     snoozed_until: datetime | None = Field(
         description="Set once the one snooze is used: the alarm comes back then."
     )
+    legal_breaks: list[LegalBreakOut] = Field(
+        description="ArbZG §4 rules, longest first, to preview a changed target."
+    )
 
     @classmethod
     def of(cls, session: WorkSession) -> "SessionOut":
@@ -85,6 +100,13 @@ class SessionOut(BaseModel):
                 for p in sorted(session.pauses, key=lambda p: p.started_at)
             ],
             snoozed_until=session.snoozed_until,
+            legal_breaks=[
+                LegalBreakOut(
+                    after_minutes=int(after.total_seconds() // 60),
+                    break_minutes=int(brk.total_seconds() // 60),
+                )
+                for after, brk in LEGAL_BREAKS
+            ],
         )
 
 
@@ -200,6 +222,23 @@ def end_session(db: Db, user: CurrentUser, clock: Now, notifier: Notify) -> Resp
     if ringing:
         stop_ringing(notifier, session)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.put("/session/current/target")
+def change_target(
+    body: ChangeTarget, db: Db, user: CurrentUser, clock: Now, notifier: Notify
+) -> SessionOut:
+    """Adjusts the remaining time. Extending after the alarm is allowed; the app warns first."""
+    session = get_active(db, user)
+    ringing = session.alarm_started_at is not None
+    try:
+        session.change_target(body.target_minutes, clock())
+    except InvalidTarget as error:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(error)) from None
+    db.commit()
+    if ringing and session.alarm_started_at is None:
+        stop_ringing(notifier, session)
+    return SessionOut.of(session)
 
 
 def cannot_snooze(error: CannotSnooze) -> HTTPException:

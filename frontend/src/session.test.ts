@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { currentPause, endTime, missingBreakMs, remainingMs } from './session'
+import { currentPause, endTime, missingBreakMs, remainingMs, targetForEnd, withTarget } from './session'
 
 const at = (time: string) => new Date(`2026-10-22T${time}Z`)
 const iso = (time: string) => `2026-10-22T${time}Z`
@@ -11,6 +11,10 @@ const running = {
   required_break_minutes: 0,
   pauses: [],
   snoozed_until: null,
+  legal_breaks: [
+    { after_minutes: 540, break_minutes: 45 },
+    { after_minutes: 360, break_minutes: 30 },
+  ],
 }
 
 // An earlier 10-minute pause, and a spontaneous pause running since 10:00.
@@ -119,5 +123,24 @@ describe('legal break', () => {
     const pausing = { ...eightHours, pauses: [{ id: 1, started_at: iso('10:00:00'), ended_at: null }] }
     expect(endTime(pausing, at('10:20:00'))).toEqual(at('14:30:00'))
     expect(endTime(pausing, at('10:45:00'))).toEqual(at('14:45:00'))
+  })
+})
+
+describe('adjusting the target', () => {
+  // 7 h + 30 min legal break from 06:00: ends 13:30.
+  const sevenHours = { ...running, target_minutes: 420, required_break_minutes: 30 }
+
+  it('previews the end with another target', () => {
+    expect(endTime(withTarget(sevenHours, 435), at('09:00:00'))).toEqual(at('13:45:00'))
+  })
+
+  it('applies the legal break rules of the new target', () => {
+    const sixHours = { ...running, target_minutes: 360 }
+    expect(endTime(withTarget(sixHours, 375), at('09:00:00'))).toEqual(at('12:45:00'))
+    expect(endTime(withTarget(sevenHours, 545), at('09:00:00'))).toEqual(at('15:50:00'))
+  })
+
+  it('finds the target for a wished end', () => {
+    expect(targetForEnd(sevenHours, at('14:00:00'), at('09:00:00'))).toBe(450)
   })
 })

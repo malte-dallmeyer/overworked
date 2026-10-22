@@ -66,3 +66,14 @@ export function currentPause(session: SessionOut, now: Date): PauseOut | undefin
     (p) => Date.parse(p.started_at) <= nowMs && (p.ended_at === null || nowMs < Date.parse(p.ended_at)),
   )
 }
+
+/** The session with another target, its legal break taken from the backend's rules. */
+export function withTarget(session: SessionOut, targetMinutes: number): SessionOut {
+  const rule = session.legal_breaks.find((r) => targetMinutes > r.after_minutes)
+  return { ...session, target_minutes: targetMinutes, required_break_minutes: rule?.break_minutes ?? 0 }
+}
+
+/** The target that moves Feierabend to `end`, if no legal break threshold is crossed. */
+export function targetForEnd(session: SessionOut, end: Date, now: Date): number {
+  return session.target_minutes + Math.round((end.getTime() - endTime(session, now).getTime()) / 60_000)
+}

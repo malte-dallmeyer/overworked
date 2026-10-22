@@ -1,8 +1,9 @@
 import { AlarmClock, Coffee, ListPlus, Moon, Play } from 'lucide-react'
 import { useState } from 'react'
 import type { PauseOut, SessionOut } from './api'
+import { AdjustPanel } from './AdjustPanel'
 import { PausePanel } from './PausePanel'
-import { PauseSheet } from './PauseSheet'
+import { Sheet } from './Sheet'
 import { Ring } from './Ring'
 import { currentPause, endTime, missingBreakMs, remainingMs } from './session'
 import { dayProgress } from './sky'
@@ -20,7 +21,7 @@ type RunningSessionProps = {
 
 export function RunningSession({ session, onPause, onResume, onEnd, onSnooze }: RunningSessionProps) {
   const now = useNow()
-  const [sheet, setSheet] = useState<{ open: boolean; edit?: PauseOut }>({ open: false })
+  const [sheet, setSheet] = useState<{ open: 'pauses' | 'adjust' | null; edit?: PauseOut }>({ open: null })
 
   const start = new Date(session.started_at)
   const end = endTime(session, now)
@@ -30,6 +31,7 @@ export function RunningSession({ session, onPause, onResume, onEnd, onSnooze }: 
   const snoozeLeft = session.snoozed_until ? Math.max(0, Date.parse(session.snoozed_until) - now.getTime()) : 0
   const canSnooze = remaining === 0 && !session.snoozed_until && !pause
   useSky(dayProgress(start, end, now))
+  const close = () => setSheet({ open: null })
 
   return (
     <section className="running">
@@ -48,22 +50,29 @@ export function RunningSession({ session, onPause, onResume, onEnd, onSnooze }: 
           start={start}
           end={end}
           now={now}
-          onPauseClick={(id) => setSheet({ open: true, edit: session.pauses.find((p) => p.id === id) })}
+          onPauseClick={(id) => setSheet({ open: 'pauses', edit: session.pauses.find((p) => p.id === id) })}
         />
         <div className="dial-center">
-          {remaining > 0 ? (
-            <>
-              <span className="dial-label">noch</span>
-              <strong className="countdown">{formatCountdown(remaining)}</strong>
-            </>
-          ) : snoozeLeft > 0 ? (
-            <>
-              <span className="dial-label">Snooze</span>
-              <strong className="countdown">{formatCountdown(snoozeLeft)}</strong>
-            </>
-          ) : (
-            <strong className="countdown done">Feierabend!</strong>
-          )}
+          <button
+            type="button"
+            className="dial-button"
+            aria-label="Restzeit anpassen"
+            onClick={() => setSheet({ open: 'adjust' })}
+          >
+            {remaining > 0 ? (
+              <>
+                <span className="dial-label">noch</span>
+                <strong className="countdown">{formatCountdown(remaining)}</strong>
+              </>
+            ) : snoozeLeft > 0 ? (
+              <>
+                <span className="dial-label">Snooze</span>
+                <strong className="countdown">{formatCountdown(snoozeLeft)}</strong>
+              </>
+            ) : (
+              <strong className="countdown done">Feierabend!</strong>
+            )}
+          </button>
         </div>
       </div>
 
@@ -80,7 +89,7 @@ export function RunningSession({ session, onPause, onResume, onEnd, onSnooze }: 
             <Coffee aria-hidden size={20} /> Pause
           </button>
         )}
-        <button className="secondary" onClick={() => setSheet({ open: true })}>
+        <button className="secondary" onClick={() => setSheet({ open: 'pauses' })}>
           <ListPlus aria-hidden size={20} /> Pausen{session.pauses.length > 0 && ` (${session.pauses.length})`}
         </button>
         {canSnooze && (
@@ -93,9 +102,12 @@ export function RunningSession({ session, onPause, onResume, onEnd, onSnooze }: 
         </button>
       </div>
 
-      <PauseSheet open={sheet.open} onClose={() => setSheet({ open: false })}>
+      <Sheet open={sheet.open === 'pauses'} onClose={close} labelledBy="pauses-heading">
         <PausePanel key={sheet.edit?.id ?? 'new'} session={session} now={now} initialEdit={sheet.edit} />
-      </PauseSheet>
+      </Sheet>
+      <Sheet open={sheet.open === 'adjust'} onClose={close} labelledBy="adjust-heading">
+        <AdjustPanel session={session} now={now} onDone={close} onEnd={onEnd} />
+      </Sheet>
     </section>
   )
 }

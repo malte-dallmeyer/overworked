@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from overworked.models import CannotSnooze, InvalidPause, WorkSession
+from overworked.models import CannotSnooze, InvalidPause, InvalidTarget, WorkSession
 
 
 def at(hour: int, minute: int = 0, day: int = 22) -> datetime:
@@ -404,3 +404,42 @@ def test_every_session_has_its_own_secret_for_the_notification_buttons():
 
     assert len(first.alarm_token) >= 20
     assert first.alarm_token != second.alarm_token
+
+
+# --- Adjusting the remaining time ---
+
+
+def test_a_longer_target_moves_the_end():
+    session = a_session(target_minutes=420)  # 7 h + 30 min legal break: ends 15:30
+    session.change_target(435, at(10))
+
+    assert session.end_at(at(10)) == at(15, 45)
+
+
+def test_a_target_beyond_six_hours_brings_the_legal_break():
+    session = a_session()
+    session.change_target(375, at(10))
+
+    assert session.end_at(at(10)) == at(14, 45)
+
+
+def test_extending_after_the_alarm_brings_it_back_at_the_new_end():
+    session = alarmed(a_session(target_minutes=420), at(15, 30), at(15, 32))
+    session.change_target(450, at(15, 33))
+
+    assert not session.needs_alarm(at(15, 59))
+    assert not session.needs_auto_end(at(15, 59))
+    assert session.needs_alarm(at(16))
+
+
+def test_shortening_makes_it_due_right_away():
+    session = a_session()
+    session.change_target(120, at(11))
+
+    assert session.needs_alarm(at(11))
+
+
+@pytest.mark.parametrize("minutes", [0, 24 * 60 + 1])
+def test_rejects_a_target_out_of_range(minutes):
+    with pytest.raises(InvalidTarget):
+        a_session().change_target(minutes, at(10))

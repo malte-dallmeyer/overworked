@@ -248,6 +248,45 @@
         }
       }
     },
+    "/api/session/current/target": {
+      "put": {
+        "summary": "Change Target",
+        "description": "Adjusts the remaining time. Extending after the alarm is allowed; the app warns first.",
+        "operationId": "change_target",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeTarget"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/session/current/snooze": {
       "post": {
         "summary": "Snooze Session",
@@ -476,6 +515,21 @@
   },
   "components": {
     "schemas": {
+      "ChangeTarget": {
+        "properties": {
+          "target_minutes": {
+            "type": "integer",
+            "maximum": 1440.0,
+            "minimum": 1.0,
+            "title": "Target Minutes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "target_minutes"
+        ],
+        "title": "ChangeTarget"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -488,6 +542,25 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "LegalBreakOut": {
+        "properties": {
+          "after_minutes": {
+            "type": "integer",
+            "title": "After Minutes",
+            "description": "Applies to targets longer than this."
+          },
+          "break_minutes": {
+            "type": "integer",
+            "title": "Break Minutes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "after_minutes",
+          "break_minutes"
+        ],
+        "title": "LegalBreakOut"
       },
       "LoginIn": {
         "properties": {
@@ -591,6 +664,14 @@
             ],
             "title": "Snoozed Until",
             "description": "Set once the one snooze is used: the alarm comes back then."
+          },
+          "legal_breaks": {
+            "items": {
+              "$ref": "#/components/schemas/LegalBreakOut"
+            },
+            "type": "array",
+            "title": "Legal Breaks",
+            "description": "ArbZG §4 rules, longest first, to preview a changed target."
           }
         },
         "type": "object",
@@ -599,7 +680,8 @@
           "target_minutes",
           "required_break_minutes",
           "pauses",
-          "snoozed_until"
+          "snoozed_until",
+          "legal_breaks"
         ],
         "title": "SessionOut",
         "description": "Raw state; clients derive end time and countdown from it with their own clock."

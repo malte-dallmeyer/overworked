@@ -130,3 +130,18 @@ test('plan a pause: the end time moves right away', async ({ page, request }) =>
   const endWithPause = new Date(plannedEnd(session).getTime() + 30 * 60_000)
   await expect(page.getByText(`Feierabend um ${clockTime(endWithPause)}`)).toBeVisible()
 })
+
+test('adjust the remaining time: Feierabend moves', async ({ page, request }) => {
+  await page.goto('/')
+  await page.getByLabel('Sollzeit', { exact: true }).fill('8:00')
+  await page.getByRole('button', { name: 'Jetzt starten' }).click()
+  const session = (await currentSession(request))!
+
+  await page.getByRole('button', { name: 'Restzeit anpassen' }).click()
+  await page.getByRole('button', { name: '15 Minuten später' }).click()
+  await page.getByRole('button', { name: 'Übernehmen' }).click()
+
+  const later = new Date(plannedEnd(session).getTime() + 15 * 60_000)
+  await expect(page.getByText(`Feierabend um ${clockTime(later)}`)).toBeVisible()
+  expect((await currentSession(request))?.target_minutes).toBe(495)
+})

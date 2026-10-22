@@ -260,3 +260,11 @@ def test_snoozing_is_refused_the_second_time(client, clock, check_alarms):
     clock.advance(timedelta(minutes=10))
 
     assert client.post("/api/session/current/snooze").status_code == 409
+
+
+def test_extending_while_the_alarm_rings_stops_it(client, clock, notifier, check_alarms):
+    alarm_now(client, clock, check_alarms)
+
+    client.put("/api/session/current/target", json={"target_minutes": 375})
+
+    assert notifier.cleared == [notifier.messages[0].key]
