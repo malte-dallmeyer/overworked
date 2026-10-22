@@ -12,16 +12,17 @@ docs/story-map.md. Talk to the user in German.
 
 ## Commands
 
-All dev commands are documented bash scripts in `scripts/` (`--help` prints the header comment,
-which is the documentation, so keep it accurate). `.vscode/tasks.json` only wraps them.
+All dev commands are Node scripts in `scripts/` (`--help` prints the leading `//` comment block,
+which is the documentation, so keep it accurate). Shared helpers (arg parsing via `util.parseArgs`,
+`run`/`exec`/`runAll`) live in `scripts/lib/cli.mjs`. `.vscode/tasks.json` only wraps the scripts.
 
-- Everything once: `scripts/test-all.sh`; lint/typecheck: `scripts/lint.sh`
-- Backend: `scripts/test-backend.sh [unit|integration] [--watch] [-- pytest args]`
-- Frontend: `scripts/test-frontend.sh [unit|component] [--watch] [--ui] [--headed] [-- vitest args]`
-- E2E: `scripts/test-e2e.sh [--watch] [--headed] [--ui] [--report] [-- playwright args]`
+- Everything once: `node scripts/test-all.mjs`; lint/typecheck: `node scripts/lint.mjs`
+- Backend: `node scripts/test-backend.mjs [unit|integration] [--watch] [-- pytest args]`
+- Frontend: `node scripts/test-frontend.mjs [unit|component] [--watch] [--ui] [--headed] [-- vitest args]`
+- E2E: `node scripts/test-e2e.mjs [--watch] [--headed] [--ui] [--report] [-- playwright args]`
 - Image: `docker compose build`
 
-Scripts must run on bash 3.2 (macOS): no `set -u`, no bash-4 features.
+Scripts must stay cross-platform (Linux, macOS, Windows): no shell syntax, spawn via the helpers.
 
 ## Working agreements
 

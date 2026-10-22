@@ -42,26 +42,26 @@ im Watch-Modus; „Alle Tests“ ist der Standard-Test-Task.
 Voraussetzungen: [uv](https://docs.astral.sh/uv/) und Node.js ≥ 22.
 
 ```sh
-scripts/setup.sh
+node scripts/setup.mjs
 ```
 
 ### Skripte
 
-Alles Wiederkehrende liegt in [scripts/](scripts/). Jedes Skript beschreibt sich selbst:
-`scripts/<name>.sh --help`.
+Alles Wiederkehrende liegt in [scripts/](scripts/). Es sind Node-Skripte, sie laufen also unter
+Linux, macOS und Windows. Jedes Skript beschreibt sich selbst: `node scripts/<name>.mjs --help`.
 
 | Skript | Zweck |
 |---|---|
-| `scripts/setup.sh` | Alle Abhängigkeiten installieren, `.env` anlegen |
-| `scripts/dev-backend.sh` | Backend mit Auto-Reload auf <http://localhost:8000> |
-| `scripts/dev-frontend.sh` | Frontend auf <http://localhost:5173> (leitet `/api` ans Backend weiter) |
-| `scripts/test-backend.sh [unit\|integration] [--watch]` | Backend-Tests (pytest) |
-| `scripts/test-frontend.sh [unit\|component] [--watch] [--ui] [--headed]` | Frontend-Tests; Component-Tests laufen in Chromium (Vitest Browser Mode), `--ui` öffnet den Live-Report |
-| `scripts/test-e2e.sh [--watch] [--headed] [--ui] [--report]` | End-to-End-Tests (Playwright); headless mit `--watch` öffnet danach den Report mit Trace Viewer |
-| `scripts/test-all.sh` | Alle Tests einmal |
-| `scripts/lint.sh` | Ruff, oxlint und Typecheck |
+| `node scripts/setup.mjs` | Alle Abhängigkeiten installieren, `.env` anlegen |
+| `node scripts/dev-backend.mjs` | Backend mit Auto-Reload auf <http://localhost:8000> |
+| `node scripts/dev-frontend.mjs` | Frontend auf <http://localhost:5173> (leitet `/api` ans Backend weiter) |
+| `node scripts/test-backend.mjs [unit\|integration] [--watch]` | Backend-Tests (pytest) |
+| `node scripts/test-frontend.mjs [unit\|component] [--watch] [--ui] [--headed]` | Frontend-Tests; Component-Tests laufen in Chromium (Vitest Browser Mode), `--ui` öffnet den Live-Report |
+| `node scripts/test-e2e.mjs [--watch] [--headed] [--ui] [--report]` | End-to-End-Tests (Playwright); headless mit `--watch` öffnet danach den Report mit Trace Viewer |
+| `node scripts/test-all.mjs` | Alle Tests einmal |
+| `node scripts/lint.mjs` | Ruff, oxlint und Typecheck |
 
-Optionen nach `--` gehen an das Test-Tool, z. B. `scripts/test-backend.sh unit -- -k alarm`.
+Optionen nach `--` gehen an das Test-Tool, z. B. `node scripts/test-backend.mjs unit -- -k alarm`.
 
 **Headed im Dev Container:** Der Container hat keinen Bildschirm. Nutze dort für E2E den
 headless-Watch mit Report (Port 9324) oder den UI-Modus (Port 9323); headed-Läufe funktionieren
