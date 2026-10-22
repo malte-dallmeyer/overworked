@@ -20,8 +20,10 @@ Releases von oben (zuerst) nach unten.
 | Sync | SSE für den Status, REST für Befehle | Selten Änderungen; der Countdown wird im Client berechnet |
 | Alarm Handy | ntfy (Basis-URL konfigurierbar), Backend wiederholt den Alarm bis zur Bestätigung | PWA allein kann nicht penetrant klingeln |
 | Alarm Desktop | Web-Push aus der PWA, solange der Browser-Prozess läuft; im offenen Tab zusätzlich ein Ton | Auf dem Arbeitsrechner kann nichts installiert werden |
-| Snooze | Einmal pro Session | Mehr wäre eine Hintertür |
-| Nicht bestätigt | Session endet automatisch 20 min nach Alarmbeginn | Kein Dauerklingeln bei vergessenem Handy |
+| Wiederholung | Alarm alle 2 min, bis bestätigt; dazu klingelt die ntfy-App bei höchster Priorität, bis die Benachrichtigung weggewischt wird | Der Server erfährt nicht, ob eine Benachrichtigung nur weggewischt wurde |
+| Bestätigen | „Feierabend machen“ in der App oder per Knopf in der Benachrichtigung; der Knopf ruft eine URL mit einem zufälligen Schlüssel pro Session auf, der nur Beenden und Snooze erlaubt | ntfy hat kein Login-Cookie |
+| Snooze | Einmal pro Session, 10 min; danach beginnt der Ablauf neu (Wiederholung, Auto-Ende) | Mehr wäre eine Hintertür |
+| Nicht bestätigt | Session endet automatisch 20 min nach Alarmbeginn; als Feierabend gilt die Alarmzeit | Kein Dauerklingeln bei vergessenem Handy; wer nicht reagiert, hat vermutlich längst aufgehört |
 | Auslieferung | Ein Container: FastAPI liefert den Frontend-Build aus | Eine Adresse, kein CORS |
 | Datenbank | SQLite auf einem Volume | Single-User, einfach selbst zu hosten |
 | Zeitpunkte | UTC, vom Server gesetzt | Mitternacht und Uhrabweichungen der Geräte spielen keine Rolle |
