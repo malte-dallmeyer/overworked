@@ -26,6 +26,8 @@ export default defineConfig({
         extends: true,
         // Serves mockServiceWorker.js to the test browser only; never part of the app build.
         plugins: [msw({ mode: 'worker-only' })],
+        // Pre-bundle up front; otherwise Vite re-optimizes mid-run and reloads the tests.
+        optimizeDeps: { include: ['react-dom/client', 'vitest-browser-react', 'msw', 'msw/browser'] },
         test: {
           name: 'component',
           include: ['src/**/*.test.tsx'],

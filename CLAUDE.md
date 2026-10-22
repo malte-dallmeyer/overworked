@@ -12,14 +12,16 @@ docs/story-map.md. Talk to the user in German.
 
 ## Commands
 
-All dev commands are npm scripts in the root `package.json` (see README for the full table);
-`.vscode/tasks.json` wraps the same scripts. Extra args are forwarded, e.g. `npm run test:backend:unit -- -k alarm`.
+All dev commands are documented bash scripts in `scripts/` (`--help` prints the header comment,
+which is the documentation, so keep it accurate). `.vscode/tasks.json` only wraps them.
 
-- Everything once: `npm test`; lint/typecheck: `npm run lint`
-- Backend: `test:backend:unit`, `test:backend:integration` (append `:watch` for pytest-watcher)
-- Frontend: `test:frontend:unit` (Node), `test:frontend:component` (Vitest Browser Mode, Chromium)
-- E2E: `test:e2e`, `test:e2e:headed`, `test:e2e:ui`
+- Everything once: `scripts/test-all.sh`; lint/typecheck: `scripts/lint.sh`
+- Backend: `scripts/test-backend.sh [unit|integration] [--watch] [-- pytest args]`
+- Frontend: `scripts/test-frontend.sh [unit|component] [--watch] [--ui] [--headed] [-- vitest args]`
+- E2E: `scripts/test-e2e.sh [--watch] [--headed] [--ui] [--report] [-- playwright args]`
 - Image: `docker compose build`
+
+Scripts must run on bash 3.2 (macOS): no `set -u`, no bash-4 features.
 
 ## Working agreements
 

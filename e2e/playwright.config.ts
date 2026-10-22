@@ -10,7 +10,11 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
-  reporter: process.env.CI ? 'github' : 'list',
+  reporter: [
+    [process.env.CI ? 'github' : 'list'],
+    // Contains a trace viewer per test; `npm run test:e2e:report` serves the latest one.
+    ['html', { open: 'never' }],
+  ],
   use: {
     baseURL: `http://localhost:${PORT}`,
     locale: 'de-DE',

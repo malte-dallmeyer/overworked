@@ -13,11 +13,14 @@
     "UV_LINK_MODE": "copy"
   },
   "postCreateCommand": "bash .devcontainer/post-create.sh",
-  "forwardPorts": [8000, 5173, 9323],
+  "forwardPorts": [8000, 5173, 9323, 9324, 51204],
   "portsAttributes": {
     "8000": { "label": "Backend" },
     "5173": { "label": "Frontend", "onAutoForward": "openBrowser" },
-    "9323": { "label": "Playwright UI", "onAutoForward": "openBrowser" }
+    "9323": { "label": "Playwright UI", "onAutoForward": "openBrowser" },
+    "9324": { "label": "Playwright Report", "onAutoForward": "openBrowser" },
+    // Vitest UI needs the token from the terminal URL, so no auto-open here.
+    "51204": { "label": "Vitest UI", "onAutoForward": "notify" }
   },
   "customizations": {
     "vscode": {

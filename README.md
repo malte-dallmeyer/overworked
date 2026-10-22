@@ -34,40 +34,38 @@ alle Abhängigkeiten und der Playwright-Browser werden automatisch eingerichtet;
 wird aus `.env.example` angelegt. Die Datenbank ist eine SQLite-Datei und entsteht beim ersten
 Start unter `backend/data/`.
 
-Über **Terminal → Run Task…** gibt es Tasks für alles Folgende; „Alle Tests (Watch)“ ist der
-Standard-Test-Task.
+Über **Terminal → Run Task…** gibt es Tasks für Backend, Frontend und alle Testarten, jeweils
+im Watch-Modus; „Alle Tests“ ist der Standard-Test-Task.
 
 ### Ohne Dev Container
 
 Voraussetzungen: [uv](https://docs.astral.sh/uv/) und Node.js ≥ 22.
 
 ```sh
-cp .env.example .env
-npm run setup
-(cd e2e && npx playwright install --with-deps chromium)
+scripts/setup.sh
 ```
 
-### Befehle
+### Skripte
 
-Alle Befehle laufen im Projektverzeichnis. Zusätzliche Argumente gehen an das Test-Tool,
-z. B. `npm run test:backend:unit -- -k alarm`.
+Alles Wiederkehrende liegt in [scripts/](scripts/). Jedes Skript beschreibt sich selbst:
+`scripts/<name>.sh --help`.
 
-| Befehl | Zweck |
+| Skript | Zweck |
 |---|---|
-| `npm run dev:backend` | Backend mit Auto-Reload auf <http://localhost:8000> |
-| `npm run dev:frontend` | Frontend auf <http://localhost:5173> (leitet `/api` ans Backend weiter) |
-| `npm test` | Alle Tests einmal |
-| `npm run test:backend:unit[:watch]` | Backend Unit-Tests (Domänenlogik) |
-| `npm run test:backend:integration[:watch]` | Backend Integrationstests (API + SQLite) |
-| `npm run test:frontend:unit[:watch]` | Frontend Unit-Tests (reine Funktionen, Node) |
-| `npm run test:frontend:component[:watch]` | React Component-Tests in Chromium (Vitest Browser Mode) |
-| `npm run test:frontend:component:watch:headed` | dito mit sichtbarem Browser |
-| `npm run test:e2e` / `test:e2e:headed` | End-to-End-Tests (Playwright) headless / sichtbar |
-| `npm run test:e2e:ui` | Playwright UI-Modus mit Watch auf <http://localhost:9323> |
-| `npm run lint` | Ruff, oxlint und Typecheck |
+| `scripts/setup.sh` | Alle Abhängigkeiten installieren, `.env` anlegen |
+| `scripts/dev-backend.sh` | Backend mit Auto-Reload auf <http://localhost:8000> |
+| `scripts/dev-frontend.sh` | Frontend auf <http://localhost:5173> (leitet `/api` ans Backend weiter) |
+| `scripts/test-backend.sh [unit\|integration] [--watch]` | Backend-Tests (pytest) |
+| `scripts/test-frontend.sh [unit\|component] [--watch] [--ui] [--headed]` | Frontend-Tests; Component-Tests laufen in Chromium (Vitest Browser Mode), `--ui` öffnet den Live-Report |
+| `scripts/test-e2e.sh [--watch] [--headed] [--ui] [--report]` | End-to-End-Tests (Playwright); headless mit `--watch` öffnet danach den Report mit Trace Viewer |
+| `scripts/test-all.sh` | Alle Tests einmal |
+| `scripts/lint.sh` | Ruff, oxlint und Typecheck |
+
+Optionen nach `--` gehen an das Test-Tool, z. B. `scripts/test-backend.sh unit -- -k alarm`.
 
 **Headed im Dev Container:** Der Container hat keinen Bildschirm. Nutze dort für E2E den
-UI-Modus (Port 9323 wird weitergeleitet); headed-Läufe funktionieren auf dem Host.
+headless-Watch mit Report (Port 9324) oder den UI-Modus (Port 9323); headed-Läufe funktionieren
+auf dem Host.
 
 ## Lizenz
 
