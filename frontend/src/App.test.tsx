@@ -36,6 +36,16 @@ function givenCurrentSession(session: object | null) {
   worker.use(http.get('/api/session/current', () => HttpResponse.json(session)))
 }
 
+type Screen = Awaited<ReturnType<typeof render>>
+
+async function startedEarlier(screen: Screen) {
+  await userEvent.click(screen.getByText('Schon früher angefangen?'))
+}
+
+async function openPauses(screen: Screen) {
+  await userEvent.click(screen.getByRole('button', { name: /^Pausen/ }))
+}
+
 it('offers to start with a default target of 8 hours', async () => {
   givenCurrentSession(null)
   const screen = await render(<App />)
@@ -62,6 +72,32 @@ it('starts a session with the entered target and shows when work ends', async ()
   expect(requested).toEqual({ target_minutes: 450 })
 })
 
+it('shows the app name', async () => {
+  givenCurrentSession(null)
+  const screen = await render(<App />)
+
+  await expect.element(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Overworked')
+})
+
+it('picks a target from the quick choices', async () => {
+  givenCurrentSession(null)
+  let requested: unknown
+  worker.use(
+    http.post('/api/session', async ({ request }) => {
+      requested = await request.json()
+      return HttpResponse.json(running, { status: 201 })
+    }),
+  )
+  const screen = await render(<App />)
+
+  await userEvent.click(screen.getByRole('button', { name: '7:30 h' }))
+  await expect.element(screen.getByLabelText('Sollzeit')).toHaveValue('7:30')
+  await userEvent.click(screen.getByRole('button', { name: 'Jetzt starten' }))
+
+  await expect.element(screen.getByText('Feierabend um 15:30')).toBeVisible()
+  expect(requested).toEqual({ target_minutes: 450 })
+})
+
 it('does not start with an invalid target', async () => {
   givenCurrentSession(null)
   const screen = await render(<App />)
@@ -77,7 +113,7 @@ it('shows end time and time left of a running session', async () => {
   const screen = await render(<App />)
 
   await expect.element(screen.getByText('Feierabend um 15:30')).toBeVisible()
-  await expect.element(screen.getByText('noch 2:30:00')).toBeVisible()
+  await expect.element(screen.getByText('2:30', { exact: true })).toBeVisible()
 })
 
 it('ends the session and offers to start a new one', async () => {
@@ -105,7 +141,7 @@ it('shows the time left of a paused session', async () => {
   givenCurrentSession(paused)
   const screen = await render(<App />)
 
-  await expect.element(screen.getByText('noch 3:40:00')).toBeVisible()
+  await expect.element(screen.getByText('3:40', { exact: true })).toBeVisible()
 })
 
 it('resumes a paused session', async () => {
@@ -176,6 +212,7 @@ it('starts with the time work actually began', async () => {
   )
   const screen = await render(<App />)
 
+  await startedEarlier(screen)
   await userEvent.fill(screen.getByLabelText('Angefangen um'), '07:45')
   await userEvent.click(screen.getByRole('button', { name: 'Mit dieser Startzeit starten' }))
 
@@ -187,6 +224,7 @@ it('asks for a start time before starting with it', async () => {
   givenCurrentSession(null)
   const screen = await render(<App />)
 
+  await startedEarlier(screen)
   await userEvent.click(screen.getByRole('button', { name: 'Mit dieser Startzeit starten' }))
 
   await expect.element(screen.getByRole('alert')).toHaveTextContent('Bitte eine Uhrzeit eingeben')
@@ -208,6 +246,7 @@ function capture(method: 'post' | 'put' | 'delete', path: string, response: obje
 it('lists planned pauses and includes them in the end time', async () => {
   givenCurrentSession(withPlannedLunch)
   const screen = await render(<App />)
+  await openPauses(screen)
 
   await expect.element(screen.getByText('14:00–14:45 (geplant)')).toBeVisible()
   await expect.element(screen.getByText('Feierabend um 16:15')).toBeVisible()
@@ -217,6 +256,7 @@ it('plans a pause ahead', async () => {
   givenCurrentSession(running)
   const calls = capture('post', '/api/session/current/pauses', withPlannedLunch)
   const screen = await render(<App />)
+  await openPauses(screen)
 
   await userEvent.fill(screen.getByLabelText('Pause von'), '14:00')
   await userEvent.fill(screen.getByLabelText('Pause bis'), '14:45')
@@ -234,6 +274,7 @@ it('corrects a pause', async () => {
   const longerLunch = { ...lunch, ended_at: '2026-10-22T13:00:00Z' }
   const calls = capture('put', '/api/session/current/pauses/:id', { ...running, pauses: [longerLunch] })
   const screen = await render(<App />)
+  await openPauses(screen)
 
   await userEvent.click(screen.getByRole('button', { name: 'Pause 14:00–14:45 bearbeiten' }))
   await expect.element(screen.getByLabelText('Pause von')).toHaveValue('14:00')
@@ -248,10 +289,32 @@ it('corrects a pause', async () => {
   })
 })
 
+it('opens a pause tapped in the ring for editing', async () => {
+  givenCurrentSession(withPlannedLunch)
+  const screen = await render(<App />)
+
+  await userEvent.click(screen.getByTestId('ring-pause-3'))
+
+  await expect.element(screen.getByLabelText('Pause von')).toHaveValue('14:00')
+  await expect.element(screen.getByLabelText('Pause bis')).toHaveValue('14:45')
+  await expect.element(screen.getByRole('button', { name: 'Änderung speichern' })).toBeVisible()
+})
+
+it('closes the pause list', async () => {
+  givenCurrentSession(running)
+  const screen = await render(<App />)
+  await openPauses(screen)
+
+  await userEvent.click(screen.getByRole('button', { name: 'Schließen' }))
+
+  await expect.element(screen.getByRole('dialog')).not.toBeInTheDocument()
+})
+
 it('deletes a pause', async () => {
   givenCurrentSession(withPlannedLunch)
   const calls = capture('delete', '/api/session/current/pauses/:id', running)
   const screen = await render(<App />)
+  await openPauses(screen)
 
   await userEvent.click(screen.getByRole('button', { name: 'Pause 14:00–14:45 löschen' }))
 
@@ -267,6 +330,7 @@ it('explains a rejected pause', async () => {
     ),
   )
   const screen = await render(<App />)
+  await openPauses(screen)
 
   await userEvent.fill(screen.getByLabelText('Pause von'), '14:30')
   await userEvent.fill(screen.getByLabelText('Pause bis'), '15:00')
@@ -280,6 +344,7 @@ it('explains a rejected pause', async () => {
 it('asks for both times of a pause', async () => {
   givenCurrentSession(running)
   const screen = await render(<App />)
+  await openPauses(screen)
 
   await userEvent.fill(screen.getByLabelText('Pause von'), '14:00')
   await userEvent.click(screen.getByRole('button', { name: 'Pause eintragen' }))

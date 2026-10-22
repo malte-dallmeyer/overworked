@@ -32,12 +32,14 @@ describe('formatDuration', () => {
 })
 
 describe('formatCountdown', () => {
-  it('shows hours, minutes and seconds', () => {
-    expect(formatCountdown((2 * 3600 + 24 * 60 + 30) * 1000)).toBe('2:24:30')
+  it('shows hours and minutes', () => {
+    expect(formatCountdown((2 * 3600 + 24 * 60) * 1000)).toBe('2:24')
   })
 
-  it('drops partial seconds', () => {
-    expect(formatCountdown(1999)).toBe('0:00:01')
+  it('rounds up to whole minutes, so it shows 0:00 only at Feierabend', () => {
+    expect(formatCountdown((2 * 3600 + 24 * 60 + 1) * 1000)).toBe('2:25')
+    expect(formatCountdown(1000)).toBe('0:01')
+    expect(formatCountdown(0)).toBe('0:00')
   })
 })
 

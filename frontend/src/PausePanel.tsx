@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import type { PauseOut, SessionOut } from './api'
 import { addPauseMutation, changePauseMutation, removePauseMutation } from './api/@tanstack/react-query.gen'
@@ -8,11 +9,18 @@ import { useSessionCache } from './useSessionCache'
 const REJECTED = 'Die Pause überschneidet sich mit einer anderen oder liegt vor Arbeitsbeginn.'
 
 /** Lists pauses and lets you add (afterwards or planned ahead), correct and delete them. */
-export function PausePanel({ session, now }: { session: SessionOut; now: Date }) {
+type PausePanelProps = {
+  session: SessionOut
+  now: Date
+  /** Pause to open in edit mode, e.g. after tapping it in the ring. */
+  initialEdit?: PauseOut
+}
+
+export function PausePanel({ session, now, initialEdit }: PausePanelProps) {
   const cache = useSessionCache()
-  const [from, setFrom] = useState('')
-  const [to, setTo] = useState('')
-  const [editing, setEditing] = useState<PauseOut | null>(null)
+  const [from, setFrom] = useState(initialEdit ? clockTimeOf(initialEdit.started_at) : '')
+  const [to, setTo] = useState(initialEdit?.ended_at ? clockTimeOf(initialEdit.ended_at) : '')
+  const [editing, setEditing] = useState<PauseOut | null>(initialEdit ?? null)
   const [error, setError] = useState<string | null>(null)
 
   function reset() {
@@ -37,8 +45,8 @@ export function PausePanel({ session, now }: { session: SessionOut; now: Date })
 
   function edit(pause: PauseOut) {
     setEditing(pause)
-    setFrom(formatClockTime(new Date(pause.started_at)))
-    setTo(formatClockTime(new Date(pause.ended_at!)))
+    setFrom(clockTimeOf(pause.started_at))
+    setTo(clockTimeOf(pause.ended_at!))
     setError(null)
   }
 
@@ -58,28 +66,37 @@ export function PausePanel({ session, now }: { session: SessionOut; now: Date })
   return (
     <section className="pauses" aria-labelledby="pauses-heading">
       <h2 id="pauses-heading">Pausen</h2>
-      {session.pauses.length > 0 && (
+      {session.pauses.length === 0 ? (
+        <p className="muted">Noch keine Pausen. Trag hier vergessene oder geplante ein.</p>
+      ) : (
         <ul>
           {session.pauses.map((pause) => {
             const range = pauseRange(pause)
             return (
-              <li key={pause.id}>
+              <li key={pause.id} className={editing?.id === pause.id ? 'editing' : undefined}>
                 <span>
                   {range}
                   {pauseStatus(pause, now)}
                 </span>
                 {pause.ended_at && (
                   <>
-                    <button type="button" className="link" aria-label={`Pause ${range} bearbeiten`} onClick={() => edit(pause)}>
-                      Bearbeiten
+                    <button
+                      type="button"
+                      className="icon-button"
+                      aria-label={`Pause ${range} bearbeiten`}
+                      title="Bearbeiten"
+                      onClick={() => edit(pause)}
+                    >
+                      <Pencil aria-hidden size={18} />
                     </button>
                     <button
                       type="button"
-                      className="link"
+                      className="icon-button"
                       aria-label={`Pause ${range} löschen`}
+                      title="Löschen"
                       onClick={() => remove.mutate({ path: { pause_id: pause.id } })}
                     >
-                      Löschen
+                      <Trash2 aria-hidden size={18} />
                     </button>
                   </>
                 )}
@@ -101,7 +118,13 @@ export function PausePanel({ session, now }: { session: SessionOut; now: Date })
         </div>
         {error && <p role="alert">{error}</p>}
         <button type="submit" className="secondary">
-          {editing ? 'Änderung speichern' : 'Pause eintragen'}
+          {editing ? (
+            'Änderung speichern'
+          ) : (
+            <>
+              <Plus aria-hidden size={18} /> Pause eintragen
+            </>
+          )}
         </button>
         {editing && (
           <button type="button" className="link" onClick={reset}>
@@ -111,6 +134,10 @@ export function PausePanel({ session, now }: { session: SessionOut; now: Date })
       </form>
     </section>
   )
+}
+
+function clockTimeOf(iso: string): string {
+  return formatClockTime(new Date(iso))
 }
 
 function pauseRange(pause: PauseOut): string {

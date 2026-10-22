@@ -15,10 +15,9 @@ export function formatDuration(minutes: number): string {
   return `${Math.floor(minutes / 60)}:${pad(minutes % 60)}`
 }
 
+/** Rounded up, so it never shows 0:00 before Feierabend. */
 export function formatCountdown(ms: number): string {
-  const seconds = Math.floor(ms / 1000)
-  const hours = Math.floor(seconds / 3600)
-  return `${hours}:${pad(Math.floor(seconds / 60) % 60)}:${pad(seconds % 60)}`
+  return formatDuration(Math.ceil(ms / 60_000))
 }
 
 export function formatClockTime(date: Date): string {
