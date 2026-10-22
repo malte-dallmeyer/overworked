@@ -44,18 +44,33 @@ Zone-ID steht in Cloudflare auf der Übersichtsseite der Domain. Das Token gehö
 `terraform.tfvars` (bleibt lokal) und **nicht** in `deploy/.env`: Die landet auf dem Server, der
 das Token nicht braucht.
 
+Terraform speichert seinen State (welche Ressourcen es angelegt hat) in einem Bucket in deinem
+Projekt. So sieht jeder deiner Rechner denselben Stand, und dank Versionierung lassen sich
+ältere Stände wiederherstellen. Der Bucket wird einmalig vorab angelegt und ist im Free Tier:
+
 ```sh
+gcloud auth login
 gcloud auth application-default login
+gcloud config set project <projekt-id>
+gcloud services enable storage.googleapis.com
+gcloud storage buckets create gs://<projekt-id>-tfstate --location=us-central1 --uniform-bucket-level-access
+gcloud storage buckets update gs://<projekt-id>-tfstate --versioning
+```
+
+Dann die Infrastruktur:
+
+```sh
 cd deploy/terraform
+cp backend.hcl.example backend.hcl             # Bucket-Namen eintragen
 cp terraform.tfvars.example terraform.tfvars   # ausfüllen, inkl. Cloudflare-Token
-terraform init
+terraform init -backend-config=backend.hcl
 terraform apply
 ```
 
-Beim ersten Start installiert die VM Docker. Das dauert ein bis zwei Minuten.
+Auf einem weiteren Rechner genügen `backend.hcl`, `terraform.tfvars` und
+`terraform init -backend-config=backend.hcl`.
 
-Den Terraform-State (`terraform.tfstate`) gibt es nur lokal. Er ist nicht im Repo, also bewahre
-ihn auf: Ohne ihn kennt Terraform die angelegten Ressourcen nicht mehr.
+Beim ersten Start installiert die VM Docker. Das dauert ein bis zwei Minuten.
 
 ## 3. Konfigurieren und starten
 

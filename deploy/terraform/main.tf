@@ -1,8 +1,15 @@
 # One e2-micro VM (Google Cloud Free Tier) with Docker, a static IP, a firewall rule for
-# HTTP/HTTPS and the DNS record at Cloudflare. State stays local (terraform.tfstate, not committed).
+# HTTP/HTTPS and the DNS record at Cloudflare.
 
 terraform {
   required_version = ">= 1.6"
+
+  # State in a versioned GCS bucket, so every machine sees the same. The bucket name is not
+  # committed: `terraform init -backend-config=backend.hcl` (template: backend.hcl.example).
+  backend "gcs" {
+    prefix = "overworked"
+  }
+
   required_providers {
     google = {
       source  = "hashicorp/google"
