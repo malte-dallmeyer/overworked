@@ -146,9 +146,23 @@
       "dependsOrder": "parallel",
       "problemMatcher": [],
       "group": { "kind": "test", "isDefault": true }
+    },
+    {
+      // Asks for the SSH key's passphrase, hence the focused terminal.
+      "label": "Deployen",
+      "type": "shell",
+      "command": "node scripts/deploy.mjs ${input:deployHost}",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "focus": true, "panel": "dedicated", "clear": true }
     }
   ],
   "inputs": [
+    {
+      "id": "deployHost",
+      "type": "promptString",
+      "description": "SSH-Ziel (Host-Eintrag aus ~/.ssh/config oder user@ip)",
+      "default": "overworked"
+    },
     {
       "id": "componentBrowser",
       "type": "pickString",

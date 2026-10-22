@@ -15,7 +15,7 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { parseCli, ROOT, runAll } from './lib/cli.mjs'
 
-const { host } = parseCli(import.meta.url, { argument: 'user@host' })
+const { 'user@host': host } = parseCli(import.meta.url, { argument: 'user@host' })
 
 const files = ['compose.yml', 'Caddyfile', '.env'].map((file) => join(ROOT, 'deploy', file))
 if (!existsSync(files[2])) {
