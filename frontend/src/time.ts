@@ -28,3 +28,19 @@ export function formatClockTime(date: Date): string {
 function pad(n: number): string {
   return String(n).padStart(2, '0')
 }
+
+/**
+ * The most recent moment (up to now) with the given local wall-clock time "HH:MM":
+ * today if it has passed, otherwise yesterday. Null if the input is not a valid time.
+ */
+export function latestPastTime(input: string, now: Date): Date | null {
+  const match = /^(\d{2}):(\d{2})$/.exec(input)
+  if (!match) return null
+  const hours = Number(match[1])
+  const minutes = Number(match[2])
+  if (hours > 23 || minutes > 59) return null
+  const time = new Date(now)
+  time.setHours(hours, minutes, 0, 0)
+  if (time > now) time.setDate(time.getDate() - 1)
+  return time
+}

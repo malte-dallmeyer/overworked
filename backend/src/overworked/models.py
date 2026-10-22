@@ -25,6 +25,15 @@ class Base(DeclarativeBase):
     pass
 
 
+MAX_BACKDATING = timedelta(hours=24)
+# Device clocks differ a little; a start "from the future" within this margin is fine.
+CLOCK_SKEW_TOLERANCE = timedelta(minutes=1)
+
+
+class InvalidStart(ValueError):
+    pass
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -53,6 +62,18 @@ class WorkSession(Base):
     pauses: Mapped[list["Pause"]] = relationship(
         order_by="Pause.started_at", cascade="all, delete-orphan", lazy="selectin"
     )
+
+    @classmethod
+    def start(
+        cls, user_id: int, target_minutes: int, now: datetime, started_at: datetime | None = None
+    ) -> "WorkSession":
+        """Starts now, or at `started_at` if work began earlier (forgot to start the timer)."""
+        started_at = started_at or now
+        if started_at > now + CLOCK_SKEW_TOLERANCE:
+            raise InvalidStart("start is in the future")
+        if started_at < now - MAX_BACKDATING:
+            raise InvalidStart("start is more than 24 hours ago")
+        return cls(user_id=user_id, started_at=started_at, target_minutes=target_minutes)
 
     @property
     def is_active(self) -> bool:

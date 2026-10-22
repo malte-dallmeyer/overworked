@@ -46,6 +46,12 @@ export type StartSession = {
      * Target Minutes
      */
     target_minutes: number;
+    /**
+     * Started At
+     *
+     * When work began, if earlier than now (at most 24 hours ago).
+     */
+    started_at?: string | null;
 };
 
 /**

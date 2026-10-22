@@ -10,7 +10,7 @@ import {
   startSessionMutation,
 } from './api/@tanstack/react-query.gen'
 import { endTime, remainingMs } from './session'
-import { formatClockTime, formatCountdown, formatDuration, parseDuration } from './time'
+import { formatClockTime, formatCountdown, formatDuration, latestPastTime, parseDuration } from './time'
 import { useNow } from './useNow'
 
 export default function App() {
@@ -42,43 +42,81 @@ export default function App() {
           onEnd={() => end.mutate({})}
         />
       ) : (
-        <StartForm onStart={(minutes) => start.mutate({ body: { target_minutes: minutes } })} />
+        <StartForm
+          onStart={(minutes, startedAt) =>
+            start.mutate({
+              body: { target_minutes: minutes, ...(startedAt && { started_at: startedAt.toISOString() }) },
+            })
+          }
+        />
       )}
     </main>
   )
 }
 
-function StartForm({ onStart }: { onStart: (targetMinutes: number) => void }) {
-  const [target, setTarget] = useState(formatDuration(8 * 60))
-  const [error, setError] = useState<string | null>(null)
+type StartFormProps = { onStart: (targetMinutes: number, startedAt?: Date) => void }
 
-  function submit(event: FormEvent) {
-    event.preventDefault()
+function StartForm({ onStart }: StartFormProps) {
+  const [target, setTarget] = useState(formatDuration(8 * 60))
+  const [startTime, setStartTime] = useState('')
+  const [targetError, setTargetError] = useState<string | null>(null)
+  const [startError, setStartError] = useState<string | null>(null)
+
+  function validTarget(): number | null {
     const minutes = parseDuration(target)
-    if (minutes === null) {
-      setError('Bitte als h:mm eingeben, z. B. 7:30')
-      return
-    }
-    setError(null)
-    onStart(minutes)
+    setTargetError(minutes === null ? 'Bitte als h:mm eingeben, z. B. 7:30' : null)
+    return minutes
+  }
+
+  function startNow(event: FormEvent) {
+    event.preventDefault()
+    const minutes = validTarget()
+    if (minutes !== null) onStart(minutes)
+  }
+
+  function startEarlier() {
+    const minutes = validTarget()
+    const startedAt = latestPastTime(startTime, new Date())
+    setStartError(startedAt === null ? 'Bitte eine Uhrzeit eingeben' : null)
+    if (minutes !== null && startedAt !== null) onStart(minutes, startedAt)
   }
 
   return (
-    <form onSubmit={submit}>
+    <form onSubmit={startNow}>
       <label htmlFor="target">Sollzeit</label>
       <input
         id="target"
         inputMode="numeric"
         value={target}
         onChange={(e) => setTarget(e.target.value)}
-        aria-describedby={error ? 'target-error' : undefined}
+        aria-describedby={targetError ? 'target-error' : undefined}
       />
-      {error && (
+      {targetError && (
         <p id="target-error" role="alert">
-          {error}
+          {targetError}
         </p>
       )}
-      <button type="submit">Start</button>
+      <button type="submit">Jetzt starten</button>
+
+      <fieldset>
+        <legend>Schon früher angefangen?</legend>
+        <label htmlFor="start-time">Angefangen um</label>
+        <input
+          id="start-time"
+          type="time"
+          value={startTime}
+          onChange={(e) => setStartTime(e.target.value)}
+          aria-describedby={startError ? 'start-error' : undefined}
+        />
+        {startError && (
+          <p id="start-error" role="alert">
+            {startError}
+          </p>
+        )}
+        <button type="button" className="secondary" onClick={startEarlier}>
+          Mit dieser Startzeit starten
+        </button>
+      </fieldset>
     </form>
   )
 }

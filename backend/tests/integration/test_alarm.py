@@ -89,3 +89,12 @@ def test_alarm_comes_later_by_the_length_of_the_pause(client, clock, notifier, c
     clock.advance(timedelta(minutes=1))
     check_alarms()
     assert len(notifier.sent) == 1
+
+
+def test_backdated_session_alarms_at_the_shifted_end(client, clock, notifier, check_alarms):
+    client.post("/api/session", json={"target_minutes": 480, "started_at": "2026-10-22T07:00:00Z"})
+    clock.advance(timedelta(hours=7))
+
+    check_alarms()
+
+    assert len(notifier.sent) == 1

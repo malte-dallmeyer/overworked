@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatClockTime, formatCountdown, formatDuration, parseDuration } from './time'
+import { formatClockTime, formatCountdown, formatDuration, latestPastTime, parseDuration } from './time'
 
 describe('parseDuration', () => {
   it.each([
@@ -37,5 +37,27 @@ describe('formatCountdown', () => {
 describe('formatClockTime', () => {
   it('shows local wall-clock time', () => {
     expect(formatClockTime(new Date('2026-10-22T13:30:00Z'))).toBe('15:30')
+  })
+})
+
+describe('latestPastTime', () => {
+  // 13:00 in Berlin
+  const now = new Date('2026-10-22T11:00:00Z')
+
+  it('is today when the time has already passed', () => {
+    expect(latestPastTime('07:45', now)).toEqual(new Date('2026-10-22T05:45:00Z'))
+  })
+
+  it('is now for the current minute', () => {
+    expect(latestPastTime('13:00', now)).toEqual(new Date('2026-10-22T11:00:00Z'))
+  })
+
+  it('is yesterday when the time is still ahead, e.g. working past midnight', () => {
+    const shortlyAfterMidnight = new Date('2026-10-22T22:30:00Z') // 00:30 in Berlin
+    expect(latestPastTime('22:00', shortlyAfterMidnight)).toEqual(new Date('2026-10-22T20:00:00Z'))
+  })
+
+  it.each(['', '7', '24:00', '12:60', 'abc'])('rejects %j', (input) => {
+    expect(latestPastTime(input, now)).toBeNull()
   })
 })

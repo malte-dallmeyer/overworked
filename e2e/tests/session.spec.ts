@@ -5,7 +5,7 @@ test('start a session and see when work ends', async ({ page, request }) => {
   await page.goto('/')
 
   await page.getByLabel('Sollzeit').fill('7:30')
-  await page.getByRole('button', { name: 'Start' }).click()
+  await page.getByRole('button', { name: 'Jetzt starten' }).click()
 
   const session = await currentSession(request)
   expect(session?.target_minutes).toBe(450)
@@ -15,7 +15,7 @@ test('start a session and see when work ends', async ({ page, request }) => {
 
 test('a running session survives a reload', async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: 'Start' }).click()
+  await page.getByRole('button', { name: 'Jetzt starten' }).click()
   await expect(page.getByText(/^Feierabend um /)).toBeVisible()
 
   await page.reload()
@@ -25,11 +25,11 @@ test('a running session survives a reload', async ({ page }) => {
 
 test('ending the session offers a new start', async ({ page, request }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: 'Start' }).click()
+  await page.getByRole('button', { name: 'Jetzt starten' }).click()
 
   await page.getByRole('button', { name: 'Feierabend machen' }).click()
 
-  await expect(page.getByRole('button', { name: 'Start' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Jetzt starten' })).toBeVisible()
   expect(await currentSession(request)).toBeNull()
 })
 
@@ -42,7 +42,7 @@ test('a session started on the laptop shows up on the phone', async ({ browser }
 
   await laptop.goto('/')
   await laptop.getByLabel('Sollzeit').fill('8:00')
-  await laptop.getByRole('button', { name: 'Start' }).click()
+  await laptop.getByRole('button', { name: 'Jetzt starten' }).click()
   const endTime = laptop.getByText(/^Feierabend um \d\d:\d\d$/)
   await expect(endTime).toBeVisible()
 
@@ -56,7 +56,7 @@ test('a session started on the laptop shows up on the phone', async ({ browser }
 
 test('pause and resume', async ({ page }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: 'Start' }).click()
+  await page.getByRole('button', { name: 'Jetzt starten' }).click()
 
   await page.getByRole('button', { name: 'Pause' }).click()
   await expect(page.getByText(/^Pausiert seit \d\d:\d\d$/)).toBeVisible()
@@ -74,7 +74,7 @@ test('paused on the phone, the laptop shows the same time left', async ({ browse
   const phone = await phoneContext.newPage()
 
   await laptop.goto('/')
-  await laptop.getByRole('button', { name: 'Start' }).click()
+  await laptop.getByRole('button', { name: 'Jetzt starten' }).click()
   await phone.goto('/')
   await phone.getByRole('button', { name: 'Pause' }).click()
   // Time left stands still during a pause, so both devices must show exactly the same value.
@@ -88,4 +88,19 @@ test('paused on the phone, the laptop shows the same time left', async ({ browse
 
   await laptopContext.close()
   await phoneContext.close()
+})
+
+test('forgot to start: start with the time work actually began', async ({ page }) => {
+  const anHourAgo = new Date(Date.now() - 60 * 60_000).toLocaleTimeString('de-DE', {
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Europe/Berlin',
+  })
+  await page.goto('/')
+
+  await page.getByLabel('Angefangen um').fill(anHourAgo)
+  await page.getByRole('button', { name: 'Mit dieser Startzeit starten' }).click()
+
+  // 8 h target, started 60–61 minutes ago (the start time has minute precision).
+  await expect(page.getByText(/^noch (6:5\d|7:00):\d\d$/)).toBeVisible()
 })

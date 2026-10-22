@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from pydantic import BaseModel, Field
+from pydantic import AwareDatetime, BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from overworked.auth import get_current_user
 from overworked.clock import Clock, get_clock
 from overworked.db import get_db
-from overworked.models import User, WorkSession
+from overworked.models import InvalidStart, User, WorkSession
 
 # Operation IDs are the function names, so the generated frontend client gets
 # readable names (startSession instead of start_session_api_session_post).
@@ -23,6 +23,9 @@ Now = Annotated[Clock, Depends(get_clock)]
 
 class StartSession(BaseModel):
     target_minutes: int = Field(ge=1, le=24 * 60)
+    started_at: AwareDatetime | None = Field(
+        default=None, description="When work began, if earlier than now (at most 24 hours ago)."
+    )
 
 
 class SessionOut(BaseModel):
@@ -66,7 +69,10 @@ def start_session(body: StartSession, db: Db, user: CurrentUser, clock: Now) -> 
     conflict = HTTPException(status.HTTP_409_CONFLICT, "A session is already running")
     if find_active(db, user):
         raise conflict
-    session = WorkSession(user_id=user.id, started_at=clock(), target_minutes=body.target_minutes)
+    try:
+        session = WorkSession.start(user.id, body.target_minutes, clock(), body.started_at)
+    except InvalidStart as error:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(error)) from None
     db.add(session)
     try:
         db.commit()

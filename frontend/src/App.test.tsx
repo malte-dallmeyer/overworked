@@ -35,7 +35,7 @@ it('offers to start with a default target of 8 hours', async () => {
   const screen = await render(<App />)
 
   await expect.element(screen.getByLabelText('Sollzeit')).toHaveValue('8:00')
-  await expect.element(screen.getByRole('button', { name: 'Start' })).toBeVisible()
+  await expect.element(screen.getByRole('button', { name: 'Jetzt starten' })).toBeVisible()
 })
 
 it('starts a session with the entered target and shows when work ends', async () => {
@@ -50,7 +50,7 @@ it('starts a session with the entered target and shows when work ends', async ()
   const screen = await render(<App />)
 
   await userEvent.fill(screen.getByLabelText('Sollzeit'), '7:30')
-  await userEvent.click(screen.getByRole('button', { name: 'Start' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Jetzt starten' }))
 
   await expect.element(screen.getByText('Feierabend um 15:30')).toBeVisible()
   expect(requested).toEqual({ target_minutes: 450 })
@@ -61,7 +61,7 @@ it('does not start with an invalid target', async () => {
   const screen = await render(<App />)
 
   await userEvent.fill(screen.getByLabelText('Sollzeit'), 'viel')
-  await userEvent.click(screen.getByRole('button', { name: 'Start' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Jetzt starten' }))
 
   await expect.element(screen.getByRole('alert')).toHaveTextContent('Bitte als h:mm eingeben, z. B. 7:30')
 })
@@ -81,7 +81,7 @@ it('ends the session and offers to start a new one', async () => {
 
   await userEvent.click(screen.getByRole('button', { name: 'Feierabend machen' }))
 
-  await expect.element(screen.getByRole('button', { name: 'Start' })).toBeVisible()
+  await expect.element(screen.getByRole('button', { name: 'Jetzt starten' })).toBeVisible()
 })
 
 it('pauses a running session', async () => {
@@ -127,7 +127,7 @@ it('shows the session another device started in the meantime', async () => {
   )
   const screen = await render(<App />)
 
-  await userEvent.click(screen.getByRole('button', { name: 'Start' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Jetzt starten' }))
 
   await expect.element(screen.getByText('Feierabend um 15:30')).toBeVisible()
 })
@@ -137,4 +137,48 @@ it('tells when the server cannot be reached', async () => {
   const screen = await render(<App />)
 
   await expect.element(screen.getByRole('alert')).toHaveTextContent('Server nicht erreichbar.')
+})
+
+it('starts now without sending a start time', async () => {
+  givenCurrentSession(null)
+  let requested: unknown
+  worker.use(
+    http.post('/api/session', async ({ request }) => {
+      requested = await request.json()
+      return HttpResponse.json(running, { status: 201 })
+    }),
+  )
+  const screen = await render(<App />)
+
+  await userEvent.click(screen.getByRole('button', { name: 'Jetzt starten' }))
+
+  await expect.element(screen.getByText('Feierabend um 15:30')).toBeVisible()
+  expect(requested).toEqual({ target_minutes: 480 })
+})
+
+it('starts with the time work actually began', async () => {
+  givenCurrentSession(null)
+  let requested: unknown
+  worker.use(
+    http.post('/api/session', async ({ request }) => {
+      requested = await request.json()
+      return HttpResponse.json(running, { status: 201 })
+    }),
+  )
+  const screen = await render(<App />)
+
+  await userEvent.fill(screen.getByLabelText('Angefangen um'), '07:45')
+  await userEvent.click(screen.getByRole('button', { name: 'Mit dieser Startzeit starten' }))
+
+  await expect.element(screen.getByText('Feierabend um 15:30')).toBeVisible()
+  expect(requested).toEqual({ target_minutes: 480, started_at: '2026-10-22T05:45:00.000Z' })
+})
+
+it('asks for a start time before starting with it', async () => {
+  givenCurrentSession(null)
+  const screen = await render(<App />)
+
+  await userEvent.click(screen.getByRole('button', { name: 'Mit dieser Startzeit starten' }))
+
+  await expect.element(screen.getByRole('alert')).toHaveTextContent('Bitte eine Uhrzeit eingeben')
 })

@@ -140,3 +140,47 @@ def test_ending_a_paused_session_works(client):
 
     assert client.post("/api/session/current/end").status_code == 204
     assert client.get("/api/session/current").json() is None
+
+
+# --- Backdating the start ---
+
+
+def test_a_session_can_start_in_the_past(client):
+    response = client.post(
+        "/api/session", json={"target_minutes": 480, "started_at": "2026-10-22T06:15:00Z"}
+    )
+
+    assert response.status_code == 201
+    assert response.json()["started_at"] == "2026-10-22T06:15:00Z"
+
+
+def test_start_may_be_slightly_ahead_because_device_clocks_differ(client):
+    response = client.post(
+        "/api/session", json={"target_minutes": 480, "started_at": "2026-10-22T08:00:59Z"}
+    )
+
+    assert response.status_code == 201
+
+
+def test_rejects_a_start_in_the_future(client):
+    response = client.post(
+        "/api/session", json={"target_minutes": 480, "started_at": "2026-10-22T08:02:00Z"}
+    )
+
+    assert response.status_code == 422
+
+
+def test_rejects_a_start_more_than_a_day_ago(client):
+    response = client.post(
+        "/api/session", json={"target_minutes": 480, "started_at": "2026-10-21T07:59:00Z"}
+    )
+
+    assert response.status_code == 422
+
+
+def test_rejects_a_start_without_timezone(client):
+    response = client.post(
+        "/api/session", json={"target_minutes": 480, "started_at": "2026-10-22T06:15:00"}
+    )
+
+    assert response.status_code == 422
