@@ -87,19 +87,25 @@ class NtfyNotifier:
         urgent: bool = True,
         user_id: int | None = None,
     ) -> None:
-        headers = {"Title": title, "Priority": "max" if urgent else "default"}
+        # As JSON: HTTP headers are ASCII only, and "10 min später" is not.
+        message_json: dict = {
+            "topic": self._topic,
+            "title": title,
+            "message": message,
+            "priority": 5 if urgent else 3,
+        }
         if urgent:
-            headers["Tags"] = "alarm_clock"
+            message_json["tags"] = ["alarm_clock"]
         if key:
-            headers["X-Sequence-ID"] = key
+            message_json["sequence_id"] = key
         if actions:
-            headers["Actions"] = "; ".join(
-                f"http, {a.label}, {a.url}, method=POST, clear=true" for a in actions
-            )
+            message_json["actions"] = [
+                {"action": "http", "label": a.label, "url": a.url, "method": "POST", "clear": True}
+                for a in actions
+            ]
         if click:
-            headers["Click"] = click
-        response = self._client.post(f"/{self._topic}", content=message.encode(), headers=headers)
-        response.raise_for_status()
+            message_json["click"] = click
+        self._client.post("/", json=message_json).raise_for_status()
 
     def clear(self, key: str, *, user_id: int | None = None) -> None:
         self._client.put(f"/{self._topic}/{key}/clear").raise_for_status()
