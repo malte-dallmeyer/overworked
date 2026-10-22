@@ -297,3 +297,40 @@ def test_limit_warning_is_sent_once(client, clock, notifier, check_alarms):
     check_alarms()
 
     assert [m.title for m in notifier.messages].count("10 Stunden erreicht") == 1
+
+
+def test_feierabend_button_stops_the_other_devices_ringing(client, clock, notifier, check_alarms):
+    """Clicked in the browser: the phone must stop as well (and the other way round)."""
+    alarm_now(client, clock, check_alarms)
+
+    client.post(button(notifier, "Feierabend"))
+
+    assert notifier.cleared == [notifier.messages[0].key]
+
+
+def test_snooze_button_stops_the_other_devices_ringing(client, clock, notifier, check_alarms):
+    alarm_now(client, clock, check_alarms)
+
+    client.post(button(notifier, "10 min später"))
+
+    assert notifier.cleared == [notifier.messages[0].key]
+
+
+def test_feierabend_button_after_the_end_clears_nothing_more(client, clock, notifier, check_alarms):
+    alarm_now(client, clock, check_alarms)
+    client.post("/api/session/current/end")
+
+    client.post(button(notifier, "Feierabend"))
+
+    assert notifier.cleared == [notifier.messages[0].key]
+
+
+def test_ending_also_stops_the_ten_hour_warning(client, clock, notifier, check_alarms):
+    start(client, target_minutes=600)
+    clock.advance(timedelta(hours=9, minutes=45))
+    check_alarms()
+
+    client.post("/api/session/current/end")
+
+    assert notifier.cleared == [notifier.messages[0].key]
+    assert notifier.messages[0].key.endswith("-limit")

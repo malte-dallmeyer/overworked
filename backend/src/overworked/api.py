@@ -263,22 +263,28 @@ def resume_session(db: Db, user: CurrentUser, clock: Now) -> SessionOut:
     return SessionOut.of(session)
 
 
-def stop_ringing(notifier: Notifier, session: WorkSession) -> None:
-    """Takes the alarm off the phone; confirmed in the app, so it must not keep ringing."""
-    try:
-        notifier.clear(session.alarm_token, user_id=session.user_id)
-    except Exception:
-        log.exception("Clearing the alarm of session %s failed", session.id)
+def stop_ringing(
+    notifier: Notifier, session: WorkSession, *, alarm: bool, limit: bool = False
+) -> None:
+    """Takes the alarm and/or the 10-hour warning off every device: confirmed somewhere, so
+    it must not keep ringing anywhere. Only ending the session stops the 10-hour warning."""
+    keys = [session.alarm_token] if alarm else []
+    if limit:
+        keys.append(f"{session.alarm_token}-limit")
+    for key in keys:
+        try:
+            notifier.clear(key, user_id=session.user_id)
+        except Exception:
+            log.exception("Clearing notification %s of session %s failed", key, session.id)
 
 
 @router.post("/session/current/end", status_code=status.HTTP_204_NO_CONTENT)
 def end_session(db: Db, user: CurrentUser, clock: Now, notifier: Notify) -> Response:
     session = get_active(db, user)
-    ringing = session.alarm_started_at is not None
+    ringing, warned = session.alarm_started_at is not None, session.limit_warning is not None
     session.end(clock())
     db.commit()
-    if ringing:
-        stop_ringing(notifier, session)
+    stop_ringing(notifier, session, alarm=ringing, limit=warned)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -294,8 +300,7 @@ def change_target(
     except InvalidTarget as error:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(error)) from None
     db.commit()
-    if ringing and session.alarm_started_at is None:
-        stop_ringing(notifier, session)
+    stop_ringing(notifier, session, alarm=ringing and session.alarm_started_at is None)
     return SessionOut.of(session)
 
 
@@ -313,8 +318,7 @@ def snooze_session(db: Db, user: CurrentUser, clock: Now, notifier: Notify) -> S
     except CannotSnooze as error:
         raise cannot_snooze(error) from None
     db.commit()
-    if ringing:
-        stop_ringing(notifier, session)
+    stop_ringing(notifier, session, alarm=ringing)
     return SessionOut.of(session)
 
 
@@ -330,10 +334,16 @@ def get_by_alarm_token(db: Session, token: str) -> WorkSession:
 
 
 @router.post("/alarm/{token}/end", status_code=status.HTTP_204_NO_CONTENT)
-def end_session_from_notification(token: str, db: Db, clock: Now) -> Response:
+def end_session_from_notification(token: str, db: Db, clock: Now, notifier: Notify) -> Response:
     """Also fine if the session has ended already: the notification just goes away."""
-    get_by_alarm_token(db, token).end(clock())
+    session = get_by_alarm_token(db, token)
+    active = session.is_active
+    ringing = active and session.alarm_started_at is not None
+    warned = active and session.limit_warning is not None
+    session.end(clock())
     db.commit()
+    # On the other devices; the tapped notification clears itself.
+    stop_ringing(notifier, session, alarm=ringing, limit=warned)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
@@ -342,12 +352,15 @@ def end_session_from_notification(token: str, db: Db, clock: Now) -> Response:
     status_code=status.HTTP_204_NO_CONTENT,
     responses={409: {"description": "Not due or used"}},
 )
-def snooze_session_from_notification(token: str, db: Db, clock: Now) -> Response:
+def snooze_session_from_notification(token: str, db: Db, clock: Now, notifier: Notify) -> Response:
+    session = get_by_alarm_token(db, token)
+    ringing = session.alarm_started_at is not None
     try:
-        get_by_alarm_token(db, token).snooze(clock())
+        session.snooze(clock())
     except CannotSnooze as error:
         raise cannot_snooze(error) from None
     db.commit()
+    stop_ringing(notifier, session, alarm=ringing)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
