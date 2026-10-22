@@ -1,0 +1,19 @@
+.env
+data/
+
+# Python
+__pycache__/
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+.vitest/
+*.tsbuildinfo
+
+# Playwright
+e2e/.tmp/
+e2e/test-results/
+e2e/playwright-report/

@@ -1,0 +1,234 @@
+{
+  // All tasks call the npm scripts in package.json, so terminal and VS Code behave the same.
+  // Long-running tasks use background matchers so VS Code knows when a (re)run has finished;
+  // failing tests show up in the Problems panel.
+
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Backend starten",
+      "type": "shell",
+      "command": "npm run dev:backend",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "overworked-uvicorn",
+        "pattern": {
+          "regexp": "^__never_matches__$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "Will watch for changes|Reloading",
+          "endsPattern": "Application startup complete|Address already in use"
+        }
+      },
+      "presentation": {
+        "group": "dev",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Frontend starten",
+      "type": "shell",
+      "command": "npm run dev:frontend",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "overworked-vite",
+        "pattern": {
+          "regexp": "^__never_matches__$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "dev:frontend",
+          "endsPattern": "Local:"
+        }
+      },
+      "presentation": {
+        "group": "dev",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Backend + Frontend starten",
+      "dependsOn": [
+        "Backend starten",
+        "Frontend starten"
+      ],
+      "dependsOrder": "parallel",
+      "problemMatcher": []
+    },
+    {
+      "label": "Backend Unit-Tests (Watch)",
+      "type": "shell",
+      "command": "npm run test:backend:unit:watch",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "overworked-pytest",
+        "fileLocation": [
+          "relative",
+          "${workspaceFolder}/backend"
+        ],
+        "pattern": {
+          "regexp": "^FAILED ([^:\\s]+)::(\\S+)",
+          "file": 1,
+          "message": 2
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "test session starts",
+          "endsPattern": "^=+ .* in [\\d.]+s"
+        }
+      },
+      "group": "test",
+      "presentation": {
+        "group": "tests",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Backend Integrationstests (Watch)",
+      "type": "shell",
+      "command": "npm run test:backend:integration:watch",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "overworked-pytest",
+        "fileLocation": [
+          "relative",
+          "${workspaceFolder}/backend"
+        ],
+        "pattern": {
+          "regexp": "^FAILED ([^:\\s]+)::(\\S+)",
+          "file": 1,
+          "message": 2
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "test session starts",
+          "endsPattern": "^=+ .* in [\\d.]+s"
+        }
+      },
+      "group": "test",
+      "presentation": {
+        "group": "tests",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "React Component-Tests (Watch)",
+      "type": "shell",
+      "command": "npm run test:frontend:component:watch${input:componentBrowser}",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "overworked-vitest",
+        "fileLocation": [
+          "relative",
+          "${workspaceFolder}/frontend"
+        ],
+        "pattern": {
+          "regexp": "FAIL\\s+.*?(src/\\S+)\\s+>\\s+(.*)$",
+          "file": 1,
+          "message": 2
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "\\b(RUN|RERUN)\\b",
+          "endsPattern": "Duration|Waiting for file changes"
+        }
+      },
+      "group": "test",
+      "presentation": {
+        "group": "tests",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "E2E-Tests",
+      "type": "shell",
+      "command": "npm run test:e2e${input:e2eMode}",
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "overworked-playwright",
+        "fileLocation": [
+          "relative",
+          "${workspaceFolder}/e2e"
+        ],
+        "pattern": {
+          "regexp": "^\\s+\\d+\\) \\[\\w+\\] › (\\S+?):(\\d+):(\\d+) › (.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "message": 4
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "test:e2e",
+          "endsPattern": "Listening on|\\d+ (passed|failed)"
+        }
+      },
+      "group": "test",
+      "presentation": {
+        "group": "tests",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "Alle Tests (Watch)",
+      "dependsOn": [
+        "Backend Unit-Tests (Watch)",
+        "Backend Integrationstests (Watch)",
+        "React Component-Tests (Watch)",
+        "E2E-Tests"
+      ],
+      "dependsOrder": "parallel",
+      "problemMatcher": [],
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "Alle Tests (einmal)",
+      "type": "shell",
+      "command": "npm test",
+      "problemMatcher": [],
+      "group": "test"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "componentBrowser",
+      "type": "pickString",
+      "description": "Browser für die React Component-Tests",
+      "options": [
+        {
+          "label": "headless",
+          "value": ""
+        },
+        {
+          "label": "headed (sichtbares Browserfenster)",
+          "value": ":headed"
+        }
+      ],
+      "default": ""
+    },
+    {
+      "id": "e2eMode",
+      "type": "pickString",
+      "description": "Modus für die E2E-Tests",
+      "options": [
+        {
+          "label": "UI-Modus mit Watch (http://localhost:9323)",
+          "value": ":ui"
+        },
+        {
+          "label": "headless, einmal",
+          "value": ""
+        },
+        {
+          "label": "headed, einmal (sichtbares Browserfenster)",
+          "value": ":headed"
+        }
+      ],
+      "default": ":ui"
+    }
+  ]
+}
