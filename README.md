@@ -60,6 +60,7 @@ Linux, macOS und Windows. Jedes Skript beschreibt sich selbst: `node scripts/<na
 | `node scripts/test-e2e.mjs [--watch] [--headed] [--ui] [--report]` | End-to-End-Tests (Playwright); headless mit `--watch` öffnet danach den Report mit Trace Viewer |
 | `node scripts/test-all.mjs` | Alle Tests einmal |
 | `node scripts/lint.mjs` | Ruff, oxlint und Typecheck |
+| `node scripts/new-migration.mjs "<Beschreibung>"` | Datenbank-Migration aus geänderten Modellen erzeugen |
 
 Optionen nach `--` gehen an das Test-Tool, z. B. `node scripts/test-backend.mjs unit -- -k alarm`.
 

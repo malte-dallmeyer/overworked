@@ -22,11 +22,12 @@ function helpText(scriptUrl) {
  *
  * - `flags`: names of boolean options, e.g. ['watch', 'headed']
  * - `suites`: allowed positional values; the first one is the default
+ * - `argument`: name of a required free-text positional instead, e.g. 'message'
  *
  * Everything after `--` is returned untouched in `passthrough`, for the
  * underlying tool. Handles -h/--help and rejects unknown arguments.
  */
-export function parseCli(scriptUrl, { flags = [], suites = [] } = {}) {
+export function parseCli(scriptUrl, { flags = [], suites = [], argument } = {}) {
   const argv = process.argv.slice(2)
   const separator = argv.indexOf('--')
   const own = separator === -1 ? argv : argv.slice(0, separator)
@@ -41,6 +42,10 @@ export function parseCli(scriptUrl, { flags = [], suites = [] } = {}) {
       console.log(helpText(scriptUrl))
       process.exit(0)
     }
+    if (argument) {
+      if (positionals.length !== 1) throw new Error(`genau ein Argument <${argument}> erwartet`)
+      return { ...values, [argument]: positionals[0], passthrough }
+    }
     const [suite = suites[0], ...rest] = positionals
     if (rest.length > 0 || (suite !== undefined && !suites.includes(suite))) {
       throw new Error(`unbekanntes Argument: ${positionals.join(' ')}`)
@@ -54,10 +59,11 @@ export function parseCli(scriptUrl, { flags = [], suites = [] } = {}) {
 }
 
 /** Runs a command with the terminal attached and resolves with its exit code. */
-export function run(command, args = [], { cwd = ROOT } = {}) {
+export function run(command, args = [], { cwd = ROOT, env } = {}) {
   return new Promise((resolvePromise) => {
     const child = spawn(command, args, {
       cwd,
+      env: env && { ...process.env, ...env },
       stdio: 'inherit',
       // npx, uv etc. are .cmd shims on Windows and need a shell there.
       shell: process.platform === 'win32',

@@ -1,6 +1,14 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { endSession, fetchCurrentSession, startSession, type WorkSession } from './api'
-import { formatClockTime, formatDuration, formatRemaining, parseDuration } from './time'
+import {
+  endSession,
+  fetchCurrentSession,
+  pauseSession,
+  resumeSession,
+  startSession,
+  type WorkSession,
+} from './api'
+import { endTime, remainingMs } from './session'
+import { formatClockTime, formatCountdown, formatDuration, parseDuration } from './time'
 import { useNow } from './useNow'
 
 type State = { status: 'loading' } | { status: 'ready'; session: WorkSession | null }
@@ -20,6 +28,8 @@ export default function App() {
       ) : state.session ? (
         <RunningSession
           session={state.session}
+          onPause={async () => setState({ status: 'ready', session: await pauseSession() })}
+          onResume={async () => setState({ status: 'ready', session: await resumeSession() })}
           onEnd={async () => {
             await endSession()
             setState({ status: 'ready', session: null })
@@ -71,14 +81,30 @@ function StartForm({ onStart }: { onStart: (targetMinutes: number) => Promise<vo
   )
 }
 
-function RunningSession({ session, onEnd }: { session: WorkSession; onEnd: () => Promise<void> }) {
+type RunningSessionProps = {
+  session: WorkSession
+  onPause: () => Promise<void>
+  onResume: () => Promise<void>
+  onEnd: () => Promise<void>
+}
+
+function RunningSession({ session, onPause, onResume, onEnd }: RunningSessionProps) {
   const now = useNow()
-  const end = new Date(session.end_at)
 
   return (
     <section>
-      <p className="end">Feierabend um {formatClockTime(end)}</p>
-      <p className="remaining">noch {formatRemaining(end, now)}</p>
+      {session.paused_since && (
+        <p className="paused">Pausiert seit {formatClockTime(new Date(session.paused_since))}</p>
+      )}
+      <p className="end">Feierabend um {formatClockTime(endTime(session, now))}</p>
+      <p className="remaining">noch {formatCountdown(remainingMs(session, now))}</p>
+      {session.paused_since ? (
+        <button onClick={onResume}>Weiter</button>
+      ) : (
+        <button className="secondary" onClick={onPause}>
+          Pause
+        </button>
+      )}
       <button onClick={onEnd}>Feierabend machen</button>
     </section>
   )

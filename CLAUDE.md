@@ -20,6 +20,7 @@ which is the documentation, so keep it accurate). Shared helpers (arg parsing vi
 - Backend: `node scripts/test-backend.mjs [unit|integration] [--watch] [-- pytest args]`
 - Frontend: `node scripts/test-frontend.mjs [unit|component] [--watch] [--ui] [--headed] [-- vitest args]`
 - E2E: `node scripts/test-e2e.mjs [--watch] [--headed] [--ui] [--report] [-- playwright args]`
+- New DB migration after changing models: `node scripts/new-migration.mjs "<message>"`
 - Image: `docker compose build`
 
 Scripts must stay cross-platform (Linux, macOS, Windows): no shell syntax, spawn via the helpers.
@@ -39,6 +40,13 @@ Scripts must stay cross-platform (Linux, macOS, Windows): no shell syntax, spawn
   (`get_current_user()`, currently a fixed single user).
 - No secrets in the repo. Configuration via `OVERWORKED_*` env vars; document new ones in `.env.example`.
 - All timestamps are UTC and set by the server.
+- Schema changes go through Alembic (`backend/src/overworked/migrations/`); the app runs
+  `upgrade_to_head()` on startup. `test_migrations.py` fails if models and migrations diverge.
+  Migrations must not import app code (UTCDateTime is rendered as `sa.DateTime()`).
+- The session API returns raw state (`started_at`, `target_minutes`, `paused_seconds`,
+  `paused_since`); clients compute end time and countdown (`frontend/src/session.ts`), the
+  backend does the same for the alarm (`WorkSession.end_at(now)`). Keep both in sync.
+- `pauses` has no `user_id`: it is only reachable through its user-scoped session.
 - MSW 3: the unhandled-request option is `onUnhandledFrame`, not `onUnhandledRequest`. The worker
   script is served by `msw/vite` in the component test project only, never shipped in the app build.
 - Vitest Browser Mode `toHaveTextContent(string)` matches the full text, unlike jest-dom.

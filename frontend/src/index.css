@@ -78,3 +78,15 @@ button {
   font-variant-numeric: tabular-nums;
   margin: 0;
 }
+
+button.secondary {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--border);
+}
+
+.paused {
+  color: var(--accent);
+  font-weight: 600;
+  margin: 0;
+}

@@ -5,10 +5,19 @@ import { render } from 'vitest-browser-react'
 import App from './App'
 import { worker } from './test/worker'
 
+// "Now" is 11:00Z = 13:00 in Berlin. Ends 13:30Z = 15:30 Berlin.
 const running = {
   started_at: '2026-10-22T06:00:00Z',
   target_minutes: 450,
-  end_at: '2026-10-22T13:30:00Z',
+  paused_seconds: 0,
+  paused_since: null,
+}
+
+// Paused at 10:00Z after an earlier 10-minute pause: 3:50 h worked, 3:40 h left.
+const paused = {
+  ...running,
+  paused_seconds: 10 * 60,
+  paused_since: '2026-10-22T10:00:00Z',
 }
 
 beforeEach(() => {
@@ -73,4 +82,37 @@ it('ends the session and offers to start a new one', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Feierabend machen' }))
 
   await expect.element(screen.getByRole('button', { name: 'Start' })).toBeVisible()
+})
+
+it('pauses a running session', async () => {
+  givenCurrentSession(running)
+  worker.use(http.post('/api/session/current/pause', () => HttpResponse.json(paused)))
+  const screen = await render(<App />)
+
+  await userEvent.click(screen.getByRole('button', { name: 'Pause' }))
+
+  await expect.element(screen.getByText('Pausiert seit 12:00')).toBeVisible()
+  await expect.element(screen.getByRole('button', { name: 'Weiter' })).toBeVisible()
+})
+
+it('shows the time left of a paused session', async () => {
+  givenCurrentSession(paused)
+  const screen = await render(<App />)
+
+  await expect.element(screen.getByText('noch 3:40:00')).toBeVisible()
+})
+
+it('resumes a paused session', async () => {
+  givenCurrentSession(paused)
+  worker.use(
+    http.post('/api/session/current/resume', () =>
+      HttpResponse.json({ ...running, paused_seconds: 70 * 60 }),
+    ),
+  )
+  const screen = await render(<App />)
+
+  await userEvent.click(screen.getByRole('button', { name: 'Weiter' }))
+
+  await expect.element(screen.getByRole('button', { name: 'Pause' })).toBeVisible()
+  await expect.element(screen.getByText('Feierabend um 16:40')).toBeVisible()
 })

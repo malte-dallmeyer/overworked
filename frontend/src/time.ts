@@ -15,8 +15,8 @@ export function formatDuration(minutes: number): string {
   return `${Math.floor(minutes / 60)}:${pad(minutes % 60)}`
 }
 
-export function formatRemaining(end: Date, now: Date): string {
-  const seconds = Math.max(0, Math.floor((end.getTime() - now.getTime()) / 1000))
+export function formatCountdown(ms: number): string {
+  const seconds = Math.floor(ms / 1000)
   const hours = Math.floor(seconds / 3600)
   return `${hours}:${pad(Math.floor(seconds / 60) % 60)}:${pad(seconds % 60)}`
 }

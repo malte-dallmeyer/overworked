@@ -62,3 +62,30 @@ def test_failed_alarm_is_retried(client, clock, notifier, check_alarms):
     check_alarms()
 
     assert len(notifier.sent) == 1
+
+
+def test_no_alarm_while_paused(client, clock, notifier, check_alarms):
+    start(client)
+    clock.advance(timedelta(hours=4))
+    client.post("/api/session/current/pause")
+    clock.advance(timedelta(hours=6))
+
+    check_alarms()
+
+    assert notifier.sent == []
+
+
+def test_alarm_comes_later_by_the_length_of_the_pause(client, clock, notifier, check_alarms):
+    start(client, target_minutes=480)
+    clock.advance(timedelta(hours=4))
+    client.post("/api/session/current/pause")
+    clock.advance(timedelta(minutes=30))
+    client.post("/api/session/current/resume")
+
+    clock.advance(timedelta(hours=3, minutes=59))
+    check_alarms()
+    assert notifier.sent == []
+
+    clock.advance(timedelta(minutes=1))
+    check_alarms()
+    assert len(notifier.sent) == 1

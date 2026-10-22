@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatClockTime, formatDuration, formatRemaining, parseDuration } from './time'
+import { formatClockTime, formatCountdown, formatDuration, parseDuration } from './time'
 
 describe('parseDuration', () => {
   it.each([
@@ -24,15 +24,13 @@ describe('formatDuration', () => {
   })
 })
 
-describe('formatRemaining', () => {
-  const end = new Date('2026-10-22T15:30:00Z')
-
-  it('shows hours, minutes and seconds left', () => {
-    expect(formatRemaining(end, new Date('2026-10-22T13:05:30Z'))).toBe('2:24:30')
+describe('formatCountdown', () => {
+  it('shows hours, minutes and seconds', () => {
+    expect(formatCountdown((2 * 3600 + 24 * 60 + 30) * 1000)).toBe('2:24:30')
   })
 
-  it('shows zero once the end is reached', () => {
-    expect(formatRemaining(end, new Date('2026-10-22T16:00:00Z'))).toBe('0:00:00')
+  it('drops partial seconds', () => {
+    expect(formatCountdown(1999)).toBe('0:00:01')
   })
 })
 

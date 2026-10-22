@@ -12,7 +12,7 @@ from overworked.auth import ensure_single_user
 from overworked.clock import Clock, utc_now
 from overworked.config import Settings
 from overworked.db import make_engine
-from overworked.models import Base
+from overworked.migrations import upgrade_to_head
 from overworked.notifier import LogNotifier, Notifier, NtfyNotifier
 
 
@@ -36,7 +36,7 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        Base.metadata.create_all(engine)
+        upgrade_to_head(engine)
         with session_factory() as db:
             ensure_single_user(db)
         loop = None

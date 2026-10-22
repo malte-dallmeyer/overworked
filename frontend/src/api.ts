@@ -1,7 +1,10 @@
 export type WorkSession = {
   started_at: string
   target_minutes: number
-  end_at: string
+  /** Finished pauses only. */
+  paused_seconds: number
+  /** Start of the running pause, if any. */
+  paused_since: string | null
 }
 
 async function request(path: string, init?: RequestInit): Promise<Response> {
@@ -21,6 +24,14 @@ export async function startSession(targetMinutes: number): Promise<WorkSession> 
     body: JSON.stringify({ target_minutes: targetMinutes }),
   })
   return response.json()
+}
+
+export async function pauseSession(): Promise<WorkSession> {
+  return (await request('/api/session/current/pause', { method: 'POST' })).json()
+}
+
+export async function resumeSession(): Promise<WorkSession> {
+  return (await request('/api/session/current/resume', { method: 'POST' })).json()
 }
 
 export async function endSession(): Promise<void> {
