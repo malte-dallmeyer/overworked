@@ -81,4 +81,4 @@ auf dem Host.
 
 ## Lizenz
 
-Noch offen.
+[MIT](LICENSE).
