@@ -11,6 +11,9 @@ docs/story-map.md. Talk to the user in German.
   generated from it by hey-api (types, SDK, TanStack Query options). Both are committed; never edit by hand.
 - `e2e/` – Playwright end-to-end tests against the full stack (built frontend served by a real backend, fresh SQLite).
 - `Dockerfile` / `docker-compose.yml` – single container serving both.
+- `deploy/` – production: Terraform (GCP e2-micro + Cloudflare DNS), `compose.yml` with Caddy for
+  HTTPS, `scripts/deploy.mjs <user@host>`. CI (`.github/workflows/ci.yml`) tests every push and
+  publishes the image to GHCR from `main`. Setup steps: `deploy/README.md`.
 
 ## Commands
 

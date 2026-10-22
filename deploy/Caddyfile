@@ -1,0 +1,5 @@
+# Caddy fetches and renews the certificate for this domain by itself.
+{$OVERWORKED_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy app:8000
+}

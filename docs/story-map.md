@@ -24,7 +24,7 @@ Releases von oben (zuerst) nach unten.
 | Datenbank | SQLite auf einem Volume | Single-User, einfach selbst zu hosten |
 | Zeitpunkte | UTC, vom Server gesetzt | Mitternacht und Uhrabweichungen der Geräte spielen keine Rolle |
 | Zugriffsschutz | Login in der App (Passwort aus Umgebungsvariable), Session-Cookie | Instanz ist öffentlich erreichbar; das ist auch der Weg zu Nutzerkonten |
-| Hosting | Google Cloud e2-micro (Always Free, US-Region), Docker Compose | Kostenlos; Ressourcen reichen für Single-User |
+| Hosting | Google Cloud e2-micro (Always Free, US-Region), Docker Compose mit Caddy (HTTPS), Infrastruktur per Terraform, DNS bei Cloudflare (ohne Proxy), Image aus GitHub Actions (GHCR) | Fast kostenlos (IPv4 vermutlich ~3,65 $/Monat); reproduzierbar und dokumentiert für Selbst-Hoster; Cloudflare-Proxy würde SSE puffern |
 | Restzeit anpassen | Ändert die Sollzeit der laufenden Session (Restzeit = Sollzeit − bisher gearbeitet). Wird das Ende dadurch wieder in die Zukunft verschoben, kann der Alarm erneut kommen | Ein Wert genügt, Endzeit und Countdown leiten sich daraus ab |
 | Restzeit nach dem Alarm verlängern | Erlaubt, aber nur nach einer deutlichen Warnung, die zum Feierabend auffordert und bestätigt werden muss | Das Werkzeug soll erinnern, nicht bevormunden; die Hürde macht das Weiterarbeiten zur bewussten Entscheidung |
 | Gesetzliche Pausen | 30 min ab 6 h, 45 min ab 9 h Arbeit (ArbZG §4); eigene und geplante Pausen zählen mit. Immer in die Endzeit eingerechnet und kenntlich gemacht, z. B. „Feierabend um 17:30, inkl. 30 min Pflichtpause“ | Sonst kommt der Alarm, bevor die Pflichtpause gemacht ist; der Zusatz macht transparent, woher die Verschiebung kommt |

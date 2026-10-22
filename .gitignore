@@ -24,3 +24,8 @@ e2e/playwright-report/
 # Local research output
 research_notes/
 reports/
+
+# Terraform
+deploy/terraform/.terraform/
+deploy/terraform/*.tfstate*
+deploy/terraform/terraform.tfvars

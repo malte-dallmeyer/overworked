@@ -1,0 +1,29 @@
+# Production: Caddy terminates HTTPS (Let's Encrypt) and forwards to the app.
+# Lives on the server next to Caddyfile and .env; `node scripts/deploy.mjs` copies all three.
+services:
+  app:
+    image: ${OVERWORKED_IMAGE:?set OVERWORKED_IMAGE in .env}
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - data:/data
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      OVERWORKED_DOMAIN: ${OVERWORKED_DOMAIN:?set OVERWORKED_DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
+volumes:
+  data:
+  caddy_data:
+  caddy_config:
