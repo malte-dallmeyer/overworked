@@ -24,6 +24,13 @@ variable "cloudflare_zone_id" {
   type        = string
 }
 
+variable "cloudflare_api_token" {
+  description = "Token with Zone > DNS > Edit for this zone only. Null: CLOUDFLARE_API_TOKEN."
+  type        = string
+  default     = null
+  sensitive   = true
+}
+
 variable "ssh_user" {
   description = "User created on the VM for SSH and deployments."
   type        = string

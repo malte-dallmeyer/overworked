@@ -39,13 +39,15 @@ Soll das Paket privat bleiben, meldest du dich stattdessen einmalig auf dem Serv
 ## 2. Infrastruktur anlegen
 
 Ein Cloudflare-API-Token anlegen: *My Profile → API Tokens → Create Token → Edit zone DNS*,
-beschränkt auf deine Zone. Die Zone-ID steht in Cloudflare auf der Übersichtsseite der Domain.
+unter *Zonenressourcen* beschränkt auf deine Zone, mit Ablaufdatum (z. B. 90 Tage). Die
+Zone-ID steht in Cloudflare auf der Übersichtsseite der Domain. Das Token gehört in
+`terraform.tfvars` (bleibt lokal) und **nicht** in `deploy/.env`: Die landet auf dem Server, der
+das Token nicht braucht.
 
 ```sh
 gcloud auth application-default login
 cd deploy/terraform
-cp terraform.tfvars.example terraform.tfvars   # ausfüllen
-export CLOUDFLARE_API_TOKEN=...                # PowerShell: $env:CLOUDFLARE_API_TOKEN = "..."
+cp terraform.tfvars.example terraform.tfvars   # ausfüllen, inkl. Cloudflare-Token
 terraform init
 terraform apply
 ```

@@ -21,8 +21,10 @@ provider "google" {
   zone    = var.zone
 }
 
-# Reads the token from CLOUDFLARE_API_TOKEN.
-provider "cloudflare" {}
+# Without cloudflare_api_token, the provider reads CLOUDFLARE_API_TOKEN from the environment.
+provider "cloudflare" {
+  api_token = var.cloudflare_api_token
+}
 
 resource "google_project_service" "compute" {
   service            = "compute.googleapis.com"
