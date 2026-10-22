@@ -6,8 +6,8 @@ Releases von oben (zuerst) nach unten.
 | | **Arbeit beginnen** | **Arbeiten** | **Feierabend erreichen** | **Betreiben** |
 |---|---|---|---|---|
 | **Walking Skeleton** | Starten mit eingegebener Sollzeit | Endzeit und Restzeit anzeigen | Einmaliger ntfy-Push ans Handy bei Sollzeit | `docker compose up` lokal, `.env.example`, README-Skelett |
-| **MVP (R1)** | Sollzeit mit zuletzt genutztem Wert vorbelegt; Startzeit zurückdatieren („Wann hast du angefangen?“ oder „Jetzt“) | Pausieren/Fortsetzen; Pausen mit Start und Ende erfassen: vergessene nachtragen, im Voraus planen, korrigieren, löschen; Restzeit während der Arbeit anpassen; gesetzliche Pausen (ArbZG) in die Endzeit einrechnen; Hinweiszeile Richtung Feierabend („Feierabend in 12 min“); Live-Sync zwischen Geräten; als PWA installierbar | Alarm wiederholt sich bis zur Bestätigung; Bestätigen in der App und direkt aus der Benachrichtigung; einmal Snooze; Session endet automatisch 20 min nach Alarmbeginn ohne Bestätigung; harte Warnung vor der gesetzlichen 10-h-Grenze, auch nach Snooze oder Verlängern; Desktop: Web-Push (Benachrichtigungen per Glocke einschalten) + Ton im offenen Tab | Login per Passwort; HTTPS; Deployment; README für Selbst-Hoster |
-| **R2** | | Fortschrittsring mit Markierungen für Feierabend und 10-h-Grenze | Vorwarnung (Standard 15 min vorher) | Abgeschlossene Sessions automatisch löschen |
+| **MVP (R1)** | Sollzeit mit zuletzt genutztem Wert vorbelegt; Schnellauswahl aus den zuletzt genutzten Sollzeiten; Startzeit zurückdatieren („Wann hast du angefangen?“ oder „Jetzt“) | Pausieren/Fortsetzen; Pausen mit Start und Ende erfassen: vergessene nachtragen, im Voraus planen, korrigieren, löschen; Restzeit während der Arbeit anpassen; gesetzliche Pausen (ArbZG) in die Endzeit einrechnen; Hinweiszeile Richtung Feierabend („Feierabend in 12 min“); Live-Sync zwischen Geräten; als PWA installierbar | Alarm wiederholt sich bis zur Bestätigung; Bestätigen in der App und direkt aus der Benachrichtigung; einmal Snooze; Session endet automatisch 20 min nach Alarmbeginn ohne Bestätigung; harte Warnung vor der gesetzlichen 10-h-Grenze, auch nach Snooze oder Verlängern; Desktop: Web-Push (Benachrichtigungen per Glocke einschalten) + Ton im offenen Tab | Login per Passwort; HTTPS; Deployment; README für Selbst-Hoster; nur die letzten 5 Sessions aufbewahren |
+| **R2** | | Fortschrittsring mit Markierungen für Feierabend und 10-h-Grenze | Vorwarnung (Standard 15 min vorher) | |
 | **Später** | Vorlagen/Profile, falls sich der Bedarf zeigt | Pausen direkt am Ring ziehen (zusätzlich zum Formular, barrierefrei als Slider) | Gamification | Echte Nutzerkonten |
 
 ## Entscheidungen
@@ -15,6 +15,8 @@ Releases von oben (zuerst) nach unten.
 | Thema | Entscheidung | Begründung |
 |---|---|---|
 | Profile | Keine. Sollzeit wird beim Start eingegeben, vorbelegt mit dem zuletzt genutzten Wert | Bei zwei bis drei Sollzeiten bringt Profilverwaltung keinen Mehrwert |
+| Schnellauswahl Sollzeit | Chips = die verschiedenen Werte unter den letzten 5 gestarteten Sollzeiten, nach Dauer sortiert; anfangs 7:30 und 8:00. Beispiel: 7:30, 8:00, dann viermal 5:00 → 8:00 und 5:00; noch einmal 5:00 → nur 5:00. Liegt im Backend | Zeigt die aktuellen Gewohnheiten, Ausnahmen fallen nach fünf Starts heraus; feste Reihenfolge, damit jeder Chip an seinem Platz bleibt; auf allen Geräten gleich |
+| Aufbewahrung | Beim Start einer Session werden alle bis auf die letzten 5 gelöscht (mit Pausen) | Keine Historie: Der Server weiß nur, was die Schnellauswahl braucht |
 | Sync | SSE für den Status, REST für Befehle | Selten Änderungen; der Countdown wird im Client berechnet |
 | Alarm Handy | ntfy (Basis-URL konfigurierbar), Backend wiederholt den Alarm bis zur Bestätigung | PWA allein kann nicht penetrant klingeln |
 | Alarm Desktop | Web-Push aus der PWA, solange der Browser-Prozess läuft; im offenen Tab zusätzlich ein Ton | Auf dem Arbeitsrechner kann nichts installiert werden |
