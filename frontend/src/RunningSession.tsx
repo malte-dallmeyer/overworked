@@ -5,7 +5,7 @@ import { AdjustPanel } from './AdjustPanel'
 import { PausePanel } from './PausePanel'
 import { Sheet } from './Sheet'
 import { Ring } from './Ring'
-import { currentPause, endTime, missingBreakMs, remainingMs } from './session'
+import { currentPause, endTime, hint, missingBreakMs, remainingMs } from './session'
 import { dayProgress } from './sky'
 import { formatClockTime, formatCountdown } from './time'
 import { useNow } from './useNow'
@@ -78,6 +78,9 @@ export function RunningSession({ session, onPause, onResume, onEnd, onSnooze }: 
 
       <p className="end">Feierabend um {formatClockTime(end)}</p>
       {missingBreak > 0 && <p className="hint">inkl. {Math.ceil(missingBreak / 60_000)} min Pflichtpause</p>}
+      <p className="notice" role="status">
+        {hint(session, now)}
+      </p>
 
       <div className="actions">
         {pause ? (

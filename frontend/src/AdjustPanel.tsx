@@ -20,6 +20,8 @@ type AdjustPanelProps = {
 export function AdjustPanel({ session, now, onDone, onEnd }: AdjustPanelProps) {
   const cache = useSessionCache()
   const [target, setTarget] = useState(session.target_minutes)
+  const [capped, setCapped] = useState(false)
+  const max = session.max_work_minutes
   const save = useMutation({
     ...changeTargetMutation(),
     onSuccess: (updated) => {
@@ -34,9 +36,15 @@ export function AdjustPanel({ session, now, onDone, onEnd }: AdjustPanelProps) {
   const alarmWentOff = remainingMs(session, now) === 0 || session.snoozed_until !== null
   const warn = alarmWentOff && target > session.target_minutes
 
+  /** Within 1 minute and the 10-hour limit; says so when it had to cut. */
+  function change(minutes: number) {
+    setCapped(minutes > max)
+    setTarget(Math.min(max, Math.max(1, minutes)))
+  }
+
   function setEnd(input: string) {
     const end = timeOnOrAfter(input, new Date(session.started_at))
-    if (end) setTarget(Math.max(1, targetForEnd(session, end, now)))
+    if (end) change(targetForEnd(session, end, now))
   }
 
   return (
@@ -55,8 +63,8 @@ export function AdjustPanel({ session, now, onDone, onEnd }: AdjustPanelProps) {
             type="button"
             className="chip"
             aria-label={`${Math.abs(step)} Minuten ${step < 0 ? 'früher' : 'später'}`}
-            disabled={target + step < 1}
-            onClick={() => setTarget(target + step)}
+            disabled={target + step < 1 || target + step > max}
+            onClick={() => change(target + step)}
           >
             {step < 0 ? '−' : '+'}
             {Math.abs(step)} min
@@ -73,6 +81,10 @@ export function AdjustPanel({ session, now, onDone, onEnd }: AdjustPanelProps) {
         value={formatClockTime(newEnd)}
         onChange={(e) => setEnd(e.target.value)}
       />
+
+      {(capped || target === max) && (
+        <p className="muted">Mehr als 10 Stunden erlaubt das Arbeitszeitgesetz nicht.</p>
+      )}
 
       {warn ? (
         <>

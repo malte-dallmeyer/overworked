@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { currentPause, endTime, missingBreakMs, remainingMs, targetForEnd, withTarget } from './session'
+import { currentPause, endTime, hint, missingBreakMs, remainingMs, targetForEnd, withTarget, workedMs } from './session'
 
 const at = (time: string) => new Date(`2026-10-22T${time}Z`)
 const iso = (time: string) => `2026-10-22T${time}Z`
@@ -15,6 +15,7 @@ const running = {
     { after_minutes: 540, break_minutes: 45 },
     { after_minutes: 360, break_minutes: 30 },
   ],
+  max_work_minutes: 600,
 }
 
 // An earlier 10-minute pause, and a spontaneous pause running since 10:00.
@@ -142,5 +143,57 @@ describe('adjusting the target', () => {
 
   it('finds the target for a wished end', () => {
     expect(targetForEnd(sevenHours, at('14:00:00'), at('09:00:00'))).toBe(450)
+  })
+})
+
+describe('workedMs', () => {
+  it('leaves out pauses taken and planned ones still ahead', () => {
+    const withPauses = {
+      ...running,
+      pauses: [
+        { id: 1, started_at: iso('07:00:00'), ended_at: iso('07:30:00') },
+        { id: 2, started_at: iso('12:00:00'), ended_at: iso('13:00:00') },
+      ],
+    }
+    expect(workedMs(withPauses, at('12:30:00'))).toBe(5.5 * 3600_000)
+  })
+})
+
+describe('hint', () => {
+  const lunchTaken = { id: 1, started_at: iso('07:00:00'), ended_at: iso('07:30:00') }
+  const tenHours = { ...running, target_minutes: 600, required_break_minutes: 45, pauses: [lunchTaken] }
+
+  it('says nothing most of the day', () => {
+    expect(hint(running, at('11:00:00'))).toBeNull()
+  })
+
+  it('tells that the legal break is due a quarter of an hour ahead', () => {
+    expect(hint(running, at('11:44:00'))).toBeNull()
+    expect(hint(running, at('11:45:00'))).toBe('Pflichtpause fällig: Nach 6 h Arbeit brauchst du 30 min Pause.')
+  })
+
+  it('counts only pauses of at least 15 minutes as legal break', () => {
+    const coffee = { ...running, pauses: [{ id: 1, started_at: iso('07:00:00'), ended_at: iso('07:10:00') }] }
+    expect(hint(coffee, at('12:00:00'))).toBe('Pflichtpause fällig: Nach 6 h Arbeit brauchst du 30 min Pause.')
+    expect(hint({ ...running, pauses: [lunchTaken] }, at('12:15:00'))).toBeNull()
+  })
+
+  it('tells about the longer legal break after nine hours', () => {
+    expect(hint(tenHours, at('15:15:00'))).toBe('Pflichtpause fällig: Nach 9 h Arbeit brauchst du 45 min Pause.')
+  })
+
+  it('announces Feierabend in the last quarter of an hour', () => {
+    const day = { ...running, pauses: [lunchTaken] } // ends 14:00
+    expect(hint(day, at('13:48:00'))).toBe('Feierabend in 12 min – Zeit, langsam abzuschließen.')
+  })
+
+  it('warns before and at ten hours of work, above everything else', () => {
+    const longDay = { ...tenHours, pauses: [{ ...lunchTaken, ended_at: iso('07:45:00') }] }
+    expect(hint(longDay, at('16:35:00'))).toBe('In 10 min erreichst du die gesetzliche Höchstarbeitszeit von 10 Stunden.')
+    expect(hint(longDay, at('16:45:00'))).toBe('10 Stunden erreicht – mehr erlaubt das Arbeitszeitgesetz nicht.')
+  })
+
+  it('stays quiet during a pause', () => {
+    expect(hint(paused, at('11:50:00'))).toBeNull()
   })
 })

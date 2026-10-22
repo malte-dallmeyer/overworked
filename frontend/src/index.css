@@ -541,3 +541,13 @@ button.chip[aria-pressed='true'] {
   border: 1px solid var(--rose);
   font-weight: 600;
 }
+
+.notice {
+  margin: 0;
+  font-weight: 600;
+  max-width: 22rem;
+}
+
+.notice:empty {
+  display: none;
+}

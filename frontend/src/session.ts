@@ -77,3 +77,54 @@ export function withTarget(session: SessionOut, targetMinutes: number): SessionO
 export function targetForEnd(session: SessionOut, end: Date, now: Date): number {
   return session.target_minutes + Math.round((end.getTime() - endTime(session, now).getTime()) / 60_000)
 }
+
+/** Time worked so far: since the start, without pauses up to `now` (planned ones not yet). */
+export function workedMs(session: SessionOut, now: Date): number {
+  const nowMs = now.getTime()
+  const paused = pauseSpans(session, now)
+    .filter((s) => s.start < nowMs)
+    .reduce((sum, s) => sum + Math.min(s.end, nowMs) - s.start, 0)
+  return nowMs - Date.parse(session.started_at) - paused
+}
+
+/** Legal break taken so far: pause parts of at least 15 minutes up to `now`, the running one too. */
+function breakTakenMs(session: SessionOut, now: Date): number {
+  const nowMs = now.getTime()
+  return pauseSpans(session, now)
+    .filter((s) => s.start < nowMs)
+    .map((s) => ({ ...s, end: Math.min(s.end, nowMs) }))
+    .filter((s) => s.running || s.end - s.start >= MIN_LEGAL_BREAK_PART_MS)
+    .reduce((sum, s) => sum + s.end - s.start, 0)
+}
+
+const HINT_AHEAD_MS = 15 * 60_000
+
+/**
+ * The one thing worth saying right now, most important first: the 10-hour limit, a legal
+ * break that is due, Feierabend coming up. Null most of the day and during pauses.
+ */
+export function hint(session: SessionOut, now: Date): string | null {
+  if (currentPause(session, now)) return null
+  const worked = workedMs(session, now)
+  const minutesUntil = (ms: number) => Math.ceil(ms / 60_000)
+
+  const limit = session.max_work_minutes * 60_000
+  if (worked >= limit) return '10 Stunden erreicht – mehr erlaubt das Arbeitszeitgesetz nicht.'
+  if (worked >= limit - HINT_AHEAD_MS) {
+    return `In ${minutesUntil(limit - worked)} min erreichst du die gesetzliche Höchstarbeitszeit von 10 Stunden.`
+  }
+
+  const taken = breakTakenMs(session, now)
+  const due = session.legal_breaks.find(
+    (rule) => worked >= rule.after_minutes * 60_000 - HINT_AHEAD_MS && taken < rule.break_minutes * 60_000,
+  )
+  if (due) {
+    return `Pflichtpause fällig: Nach ${due.after_minutes / 60} h Arbeit brauchst du ${due.break_minutes} min Pause.`
+  }
+
+  const remaining = remainingMs(session, now)
+  if (remaining > 0 && remaining <= HINT_AHEAD_MS) {
+    return `Feierabend in ${minutesUntil(remaining)} min – Zeit, langsam abzuschließen.`
+  }
+  return null
+}

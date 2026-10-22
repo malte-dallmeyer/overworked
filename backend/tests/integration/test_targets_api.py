@@ -22,13 +22,21 @@ def count(app, model):
 
 
 def test_quick_targets_before_the_first_session(client):
-    assert client.get("/api/targets").json() == {"last": 480, "choices": [450, 480]}
+    assert client.get("/api/targets").json() == {
+        "last": 480,
+        "choices": [450, 480],
+        "max_minutes": 600,
+    }
 
 
 def test_quick_targets_follow_the_sessions_started(client, clock):
     work(client, clock, 300)
 
-    assert client.get("/api/targets").json() == {"last": 300, "choices": [300, 450, 480]}
+    assert client.get("/api/targets").json() == {
+        "last": 300,
+        "choices": [300, 450, 480],
+        "max_minutes": 600,
+    }
 
 
 def test_keeps_only_the_last_five_sessions_with_their_pauses(app, client, clock):
@@ -38,4 +46,4 @@ def test_keeps_only_the_last_five_sessions_with_their_pauses(app, client, clock)
 
     assert count(app, WorkSession) == 5
     assert count(app, Pause) == 0
-    assert client.get("/api/targets").json() == {"last": 420, "choices": [420]}
+    assert client.get("/api/targets").json() == {"last": 420, "choices": [420], "max_minutes": 600}

@@ -268,3 +268,32 @@ def test_extending_while_the_alarm_rings_stops_it(client, clock, notifier, check
     client.put("/api/session/current/target", json={"target_minutes": 375})
 
     assert notifier.cleared == [notifier.messages[0].key]
+
+
+# --- 10-hour limit ---
+
+
+def test_warns_before_and_at_ten_hours_of_work(client, clock, notifier, check_alarms):
+    start(client, target_minutes=600)
+    client.post("/api/session/current/snooze")  # irrelevant to the limit
+
+    clock.advance(timedelta(hours=9, minutes=45))
+    check_alarms()
+    clock.advance(timedelta(minutes=15))
+    check_alarms()
+
+    limit = [m for m in notifier.messages if m.key and m.key.endswith("-limit")]
+    assert [m.title for m in limit] == ["Gleich 10 Stunden", "10 Stunden erreicht"]
+    assert all(m.urgent for m in limit)
+    assert [a.label for a in limit[-1].actions] == ["Feierabend"]
+
+
+def test_limit_warning_is_sent_once(client, clock, notifier, check_alarms):
+    start(client, target_minutes=600)
+    clock.advance(timedelta(hours=10))
+
+    check_alarms()
+    clock.advance(timedelta(minutes=5))
+    check_alarms()
+
+    assert [m.title for m in notifier.messages].count("10 Stunden erreicht") == 1

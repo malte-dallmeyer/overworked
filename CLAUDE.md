@@ -73,7 +73,9 @@ Scripts must stay cross-platform (Linux, macOS, Windows): no shell syntax, spawn
   the same for the alarm (`WorkSession.end_at(now)`). Keep both in sync.
 - End time = start + target + pauses (merged, planned included) + legal break not covered yet
   (ArbZG §4: >6 h → 30 min, >9 h → 45 min; only pause parts ≥ 15 min count, a running pause counts
-  right away). The thresholds live only in the backend (`LEGAL_BREAKS`). "noch …" in the UI is the
+  right away). The thresholds live only in the backend (`LEGAL_BREAKS`, and `MAX_WORK` for the
+  10-hour limit of ArbZG §3); the API hands them to the frontend (`legal_breaks`, `max_work_minutes`,
+  `max_minutes`) for previews, hints and validation. "noch …" in the UI is the
   time until Feierabend (end − now), not remaining work time.
 - `pauses` has no `user_id`: it is only reachable through its user-scoped session.
 - MSW 3: the unhandled-request option is `onUnhandledFrame`, not `onUnhandledRequest`. The worker

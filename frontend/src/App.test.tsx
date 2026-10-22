@@ -17,6 +17,7 @@ const running = {
     { after_minutes: 540, break_minutes: 45 },
     { after_minutes: 360, break_minutes: 30 },
   ],
+  max_work_minutes: 600,
 }
 
 const earlierPause = { id: 1, started_at: '2026-10-22T07:00:00Z', ended_at: '2026-10-22T07:10:00Z' }
@@ -86,7 +87,7 @@ it('shows the app name', async () => {
 
 it('offers the recently used targets and prefills the last one', async () => {
   givenCurrentSession(null)
-  worker.use(http.get('/api/targets', () => HttpResponse.json({ last: 300, choices: [300, 480] })))
+  worker.use(http.get('/api/targets', () => HttpResponse.json({ last: 300, choices: [300, 480], max_minutes: 600 })))
   const screen = await render(<App />)
 
   await expect.element(screen.getByLabelText('Sollzeit')).toHaveValue('5:00')
@@ -594,4 +595,41 @@ it('ends the session from the warning', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Lieber Feierabend machen' }))
 
   await expect.element(screen.getByRole('button', { name: 'Jetzt starten' })).toBeVisible()
+})
+
+// --- Hint line and the 10-hour limit ---
+
+it('tells when the legal break is due', async () => {
+  // 5:45 h of work without a pause at 13:00 Berlin.
+  givenCurrentSession({ ...running, started_at: '2026-10-22T05:15:00Z' })
+  const screen = await render(<App />)
+
+  await expect
+    .element(screen.getByText('Pflichtpause fällig: Nach 6 h Arbeit brauchst du 30 min Pause.'))
+    .toBeVisible()
+})
+
+it('does not start with more than ten hours', async () => {
+  givenCurrentSession(null)
+  worker.use(http.get('/api/targets', () => HttpResponse.json({ last: 480, choices: [480], max_minutes: 600 })))
+  const screen = await render(<App />)
+
+  await userEvent.fill(screen.getByLabelText('Sollzeit'), '10:30')
+  await userEvent.click(screen.getByRole('button', { name: 'Jetzt starten' }))
+
+  await expect
+    .element(screen.getByRole('alert'))
+    .toHaveTextContent('Mehr als 10 Stunden erlaubt das Arbeitszeitgesetz nicht.')
+})
+
+it('does not extend beyond ten hours of work', async () => {
+  givenCurrentSession(adjustable)
+  const screen = await render(<App />)
+  await openAdjust(screen)
+
+  await userEvent.fill(screen.getByLabelText('Neue Uhrzeit'), '20:00')
+
+  // 10 h + 45 min legal break from 08:00 Berlin.
+  await expect.element(screen.getByText('Neuer Feierabend um 18:45')).toBeVisible()
+  await expect.element(screen.getByText('Mehr als 10 Stunden erlaubt das Arbeitszeitgesetz nicht.')).toBeVisible()
 })

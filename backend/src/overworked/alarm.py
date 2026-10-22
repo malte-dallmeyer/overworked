@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
 from overworked.clock import Clock
-from overworked.models import AUTO_END_AFTER, SNOOZE, WorkSession
+from overworked.models import AUTO_END_AFTER, SNOOZE, LimitWarning, WorkSession
 from overworked.notifier import Action, Notifier
 
 log = logging.getLogger(__name__)
@@ -33,6 +33,27 @@ def alarm_actions(session: WorkSession, public_url: str | None) -> list[Action]:
     if session.can_snooze:
         actions.append(Action(f"{int(SNOOZE.total_seconds() // 60)} min später", f"{base}/snooze"))
     return actions
+
+
+LIMIT_MESSAGES: dict[LimitWarning, tuple[str, str]] = {
+    "soon": (
+        "Gleich 10 Stunden",
+        "In 15 min erreichst du die gesetzliche Höchstarbeitszeit (ArbZG §3). Mach Feierabend!",
+    ),
+    "reached": (
+        "10 Stunden erreicht",
+        "Mehr erlaubt das Arbeitszeitgesetz nicht. Bitte mach jetzt Feierabend.",
+    ),
+}
+
+
+def send_limit_warning(
+    session: WorkSession, warning: LimitWarning, notifier: Notifier, public_url: str | None
+) -> None:
+    """Separate from the Feierabend alarm (own key), so neither replaces the other."""
+    title, message = LIMIT_MESSAGES[warning]
+    end = [a for a in alarm_actions(session, public_url) if a.label == "Feierabend"]
+    notifier.send(title, message, key=f"{session.alarm_token}-limit", actions=end, click=public_url)
 
 
 def send_due_alarms(
@@ -66,6 +87,10 @@ def send_due_alarms(
                         click=public_url,
                     )
                     session.mark_alarm_sent(now)
+                    db.commit()
+                if session.is_active and (warning := session.limit_warning_due(now)):
+                    send_limit_warning(session, warning, notifier, public_url)
+                    session.mark_limit_warning_sent(warning)
                     db.commit()
             except Exception:
                 log.exception("Alarm for session %s failed, retrying later", session.id)

@@ -47,7 +47,7 @@ Notify = Annotated[Notifier, Depends(get_notifier)]
 
 
 class StartSession(BaseModel):
-    target_minutes: int = Field(ge=1, le=24 * 60)
+    target_minutes: int = Field(ge=1, le=MAX_TARGET_MINUTES, description="At most 10 h (ArbZG §3).")
     started_at: AwareDatetime | None = Field(
         default=None, description="When work began, if earlier than now (at most 24 hours ago)."
     )
@@ -60,6 +60,7 @@ class ChangeTarget(BaseModel):
 class QuickTargetsOut(BaseModel):
     last: int = Field(description="Target of the last session started: the prefilled value.")
     choices: list[int] = Field(description="Distinct targets of the last starts, shortest first.")
+    max_minutes: int = Field(description="Longest target allowed (ArbZG §3).")
 
 
 class LegalBreakOut(BaseModel):
@@ -94,6 +95,7 @@ class SessionOut(BaseModel):
     legal_breaks: list[LegalBreakOut] = Field(
         description="ArbZG §4 rules, longest first, to preview a changed target."
     )
+    max_work_minutes: int = Field(description="At most this much work a day (ArbZG §3).")
 
     @classmethod
     def of(cls, session: WorkSession) -> "SessionOut":
@@ -113,6 +115,7 @@ class SessionOut(BaseModel):
                 )
                 for after, brk in LEGAL_BREAKS
             ],
+            max_work_minutes=MAX_TARGET_MINUTES,
         )
 
 
@@ -181,7 +184,9 @@ def get_quick_targets(db: Db, user: CurrentUser) -> QuickTargetsOut:
         .limit(KEEP_SESSIONS)
     ).all()
     targets = quick_targets(list(reversed(newest_first)))
-    return QuickTargetsOut(last=targets.last, choices=targets.choices)
+    return QuickTargetsOut(
+        last=targets.last, choices=targets.choices, max_minutes=MAX_TARGET_MINUTES
+    )
 
 
 def forget_old_sessions(db: Session, user: User) -> None:

@@ -100,6 +100,12 @@ export type QuickTargetsOut = {
      * Distinct targets of the last starts, shortest first.
      */
     choices: Array<number>;
+    /**
+     * Max Minutes
+     *
+     * Longest target allowed (ArbZG §3).
+     */
+    max_minutes: number;
 };
 
 /**
@@ -140,6 +146,12 @@ export type SessionOut = {
      * ArbZG §4 rules, longest first, to preview a changed target.
      */
     legal_breaks: Array<LegalBreakOut>;
+    /**
+     * Max Work Minutes
+     *
+     * At most this much work a day (ArbZG §3).
+     */
+    max_work_minutes: number;
 };
 
 /**
@@ -148,6 +160,8 @@ export type SessionOut = {
 export type StartSession = {
     /**
      * Target Minutes
+     *
+     * At most 10 h (ArbZG §3).
      */
     target_minutes: number;
     /**

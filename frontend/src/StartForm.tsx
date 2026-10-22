@@ -6,7 +6,7 @@ import { getQuickTargetsOptions } from './api/@tanstack/react-query.gen'
 import { formatDuration, latestPastTime, parseDuration } from './time'
 
 // If the server cannot tell: what a fresh instance would offer.
-const FALLBACK: QuickTargetsOut = { last: 480, choices: [450, 480] }
+const FALLBACK: QuickTargetsOut = { last: 480, choices: [450, 480], max_minutes: 600 }
 
 type StartFormProps = { onStart: (targetMinutes: number, startedAt?: Date) => void }
 
@@ -26,6 +26,10 @@ function StartFormFields({ targets, onStart }: StartFormProps & { targets: Quick
 
   function validTarget(): number | null {
     const minutes = parseDuration(target)
+    if (minutes !== null && minutes > targets.max_minutes) {
+      setTargetError('Mehr als 10 Stunden erlaubt das Arbeitszeitgesetz nicht.')
+      return null
+    }
     setTargetError(minutes === null ? 'Bitte als h:mm eingeben, z. B. 7:30' : null)
     return minutes
   }

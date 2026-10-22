@@ -1,5 +1,6 @@
 import secrets
 from datetime import UTC, datetime, timedelta
+from typing import Literal
 
 from sqlalchemy import DateTime, ForeignKey, Index, String, TypeDecorator, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -61,7 +62,12 @@ class InvalidTarget(ValueError):
     pass
 
 
-MAX_TARGET_MINUTES = 24 * 60
+# ArbZG §3: at most 10 hours of work a day, pauses not counted.
+MAX_WORK = timedelta(hours=10)
+MAX_TARGET_MINUTES = int(MAX_WORK.total_seconds() // 60)
+LIMIT_WARNING_AHEAD = timedelta(minutes=15)
+
+LimitWarning = Literal["soon", "reached"]
 
 
 class User(Base):
@@ -94,6 +100,8 @@ class WorkSession(Base):
     alarm_started_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
     last_alarm_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
     snoozed_until: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
+    # Latest warning about the 10-hour limit sent: "soon" or "reached".
+    limit_warning: Mapped[str | None] = mapped_column(String(10), default=None)
     pauses: Mapped[list["Pause"]] = relationship(
         order_by="Pause.started_at", cascade="all, delete-orphan", lazy="selectin"
     )
@@ -170,6 +178,28 @@ class WorkSession(Base):
             + self.missing_break(now)
         )
 
+    def worked(self, now: datetime) -> timedelta:
+        """Time worked so far: since the start, without pauses up to now."""
+        paused = sum(
+            (min(end, now) - start for start, end, _ in self._merged_pauses(now) if start < now),
+            timedelta(),
+        )
+        return now - self.started_at - paused
+
+    def limit_warning_due(self, now: datetime) -> LimitWarning | None:
+        """Escalation towards the 10-hour limit, independent of snooze and extending."""
+        if not self.is_active or self.is_paused(now) or self.limit_warning == "reached":
+            return None
+        worked = self.worked(now)
+        if worked >= MAX_WORK:
+            return "reached"
+        if worked >= MAX_WORK - LIMIT_WARNING_AHEAD and self.limit_warning is None:
+            return "soon"
+        return None
+
+    def mark_limit_warning_sent(self, warning: LimitWarning) -> None:
+        self.limit_warning = warning
+
     def alarm_at(self, now: datetime) -> datetime:
         """Feierabend, or the end of the snooze if that is later."""
         end = self.end_at(now)
@@ -194,7 +224,7 @@ class WorkSession(Base):
         """Adjusts the remaining time. If the end moves past `now` again, a ringing alarm stops
         and comes back at the new end."""
         if not 1 <= target_minutes <= MAX_TARGET_MINUTES:
-            raise InvalidTarget("target must be between 1 minute and 24 hours")
+            raise InvalidTarget("target must be between 1 minute and 10 hours (ArbZG §3)")
         self.target_minutes = target_minutes
         if not self.is_due(now):
             self.alarm_started_at = self.last_alarm_at = None

@@ -548,7 +548,7 @@
         "properties": {
           "target_minutes": {
             "type": "integer",
-            "maximum": 1440.0,
+            "maximum": 600.0,
             "minimum": 1.0,
             "title": "Target Minutes"
           }
@@ -671,12 +671,18 @@
             "type": "array",
             "title": "Choices",
             "description": "Distinct targets of the last starts, shortest first."
+          },
+          "max_minutes": {
+            "type": "integer",
+            "title": "Max Minutes",
+            "description": "Longest target allowed (ArbZG §3)."
           }
         },
         "type": "object",
         "required": [
           "last",
-          "choices"
+          "choices",
+          "max_minutes"
         ],
         "title": "QuickTargetsOut"
       },
@@ -724,6 +730,11 @@
             "type": "array",
             "title": "Legal Breaks",
             "description": "ArbZG §4 rules, longest first, to preview a changed target."
+          },
+          "max_work_minutes": {
+            "type": "integer",
+            "title": "Max Work Minutes",
+            "description": "At most this much work a day (ArbZG §3)."
           }
         },
         "type": "object",
@@ -733,7 +744,8 @@
           "required_break_minutes",
           "pauses",
           "snoozed_until",
-          "legal_breaks"
+          "legal_breaks",
+          "max_work_minutes"
         ],
         "title": "SessionOut",
         "description": "Raw state; clients derive end time and countdown from it with their own clock."
@@ -742,9 +754,10 @@
         "properties": {
           "target_minutes": {
             "type": "integer",
-            "maximum": 1440.0,
+            "maximum": 600.0,
             "minimum": 1.0,
-            "title": "Target Minutes"
+            "title": "Target Minutes",
+            "description": "At most 10 h (ArbZG §3)."
           },
           "started_at": {
             "anyOf": [

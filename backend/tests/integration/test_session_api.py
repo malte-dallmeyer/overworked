@@ -26,6 +26,7 @@ def test_starting_a_session_returns_it(client):
             {"after_minutes": 540, "break_minutes": 45},
             {"after_minutes": 360, "break_minutes": 30},
         ],
+        "max_work_minutes": 600,
     }
 
 
@@ -296,3 +297,12 @@ def test_session_tells_the_legal_break_rules(client):
         {"after_minutes": 540, "break_minutes": 45},
         {"after_minutes": 360, "break_minutes": 30},
     ]
+
+
+def test_rejects_a_target_beyond_ten_hours(client):
+    """ArbZG §3: at most 10 hours of work a day."""
+    assert start(client, target_minutes=601).status_code == 422
+    start(client, target_minutes=450)
+    assert (
+        client.put("/api/session/current/target", json={"target_minutes": 601}).status_code == 422
+    )

@@ -443,3 +443,59 @@ def test_shortening_makes_it_due_right_away():
 def test_rejects_a_target_out_of_range(minutes):
     with pytest.raises(InvalidTarget):
         a_session().change_target(minutes, at(10))
+
+
+# --- 10 hours a day at most (ArbZG §3) ---
+
+
+def test_worked_time_leaves_out_pauses_and_what_is_still_planned():
+    session = a_session()
+    session.add_pause(at(10), at(10, 30))
+    session.add_pause(at(15), at(16))
+
+    assert session.worked(at(15, 30)) == timedelta(hours=6, minutes=30)
+
+
+@pytest.mark.parametrize("minutes", [601, 24 * 60])
+def test_rejects_a_target_beyond_ten_hours(minutes):
+    with pytest.raises(InvalidTarget):
+        a_session().change_target(minutes, at(10))
+
+
+def test_warns_a_quarter_of_an_hour_before_ten_hours_of_work():
+    session = a_session()  # from 08:00, no pauses
+
+    assert session.limit_warning_due(at(17, 44)) is None
+    assert session.limit_warning_due(at(17, 45)) == "soon"
+
+
+def test_warns_again_at_ten_hours():
+    session = a_session()
+    session.mark_limit_warning_sent("soon")
+
+    assert session.limit_warning_due(at(17, 59)) is None
+    assert session.limit_warning_due(at(18)) == "reached"
+
+
+def test_warns_only_once_each():
+    session = a_session()
+    session.mark_limit_warning_sent("soon")
+    session.mark_limit_warning_sent("reached")
+
+    assert session.limit_warning_due(at(19)) is None
+
+
+def test_reaching_the_limit_late_skips_the_early_warning():
+    session = a_session()
+
+    assert session.limit_warning_due(at(18, 5)) == "reached"
+
+
+def test_no_limit_warning_while_paused_or_ended():
+    paused = a_session()
+    paused.pause(at(17, 40))
+    ended = a_session()
+    ended.end(at(17))
+
+    assert paused.limit_warning_due(at(18)) is None
+    assert ended.limit_warning_due(at(18)) is None
