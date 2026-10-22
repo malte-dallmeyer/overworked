@@ -6,7 +6,7 @@ Releases von oben (zuerst) nach unten.
 | | **Arbeit beginnen** | **Arbeiten** | **Feierabend erreichen** | **Betreiben** |
 |---|---|---|---|---|
 | **Walking Skeleton** | Starten mit eingegebener Sollzeit | Endzeit und Restzeit anzeigen | Einmaliger ntfy-Push ans Handy bei Sollzeit | `docker compose up` lokal, `.env.example`, README-Skelett |
-| **MVP (R1)** | Sollzeit mit zuletzt genutztem Wert vorbelegt; Startzeit zurückdatieren | Pausieren/Fortsetzen; Live-Sync zwischen Geräten; als PWA installierbar | Alarm wiederholt sich bis zur Bestätigung; Bestätigen in der App und direkt aus der Benachrichtigung; einmal Snooze; Session endet automatisch 20 min nach Alarmbeginn ohne Bestätigung; Desktop: Web-Push + Ton im offenen Tab | Login per Passwort; HTTPS; Deployment; README für Selbst-Hoster |
+| **MVP (R1)** | Sollzeit mit zuletzt genutztem Wert vorbelegt; Startzeit zurückdatieren | Pausieren/Fortsetzen; Restzeit während der Arbeit anpassen; Live-Sync zwischen Geräten; als PWA installierbar | Alarm wiederholt sich bis zur Bestätigung; Bestätigen in der App und direkt aus der Benachrichtigung; einmal Snooze; Session endet automatisch 20 min nach Alarmbeginn ohne Bestätigung; Desktop: Web-Push + Ton im offenen Tab | Login per Passwort; HTTPS; Deployment; README für Selbst-Hoster |
 | **R2** | | Vergessene Pause nachtragen | Vorwarnung (Standard 15 min vorher) | Abgeschlossene Sessions automatisch löschen |
 | **Später** | Vorlagen/Profile, falls sich der Bedarf zeigt | | Gamification | Echte Nutzerkonten |
 
@@ -24,4 +24,6 @@ Releases von oben (zuerst) nach unten.
 | Datenbank | SQLite auf einem Volume | Single-User, einfach selbst zu hosten |
 | Zeitpunkte | UTC, vom Server gesetzt | Mitternacht und Uhrabweichungen der Geräte spielen keine Rolle |
 | Zugriffsschutz | Login in der App (Passwort aus Umgebungsvariable), Session-Cookie | Instanz ist öffentlich erreichbar; das ist auch der Weg zu Nutzerkonten |
-| Hosting | _offen_ | |
+| Hosting | Google Cloud e2-micro (Always Free, US-Region), Docker Compose | Kostenlos; Ressourcen reichen für Single-User |
+| Restzeit anpassen | Ändert die Sollzeit der laufenden Session (Restzeit = Sollzeit − bisher gearbeitet). Wird das Ende dadurch wieder in die Zukunft verschoben, kann der Alarm erneut kommen | Ein Wert genügt, Endzeit und Countdown leiten sich daraus ab |
+| Restzeit nach dem Alarm verlängern | Erlaubt, aber nur nach einer deutlichen Warnung, die zum Feierabend auffordert und bestätigt werden muss | Das Werkzeug soll erinnern, nicht bevormunden; die Hürde macht das Weiterarbeiten zur bewussten Entscheidung |
