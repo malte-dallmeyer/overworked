@@ -1,7 +1,9 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
+import { LogOut } from 'lucide-react'
 import type { ReactNode } from 'react'
 import {
   endSessionMutation,
+  logoutMutation,
   getCurrentSessionOptions,
   pauseSessionMutation,
   resumeSessionMutation,
@@ -28,6 +30,8 @@ export default function App() {
   const pause = useMutation({ ...pauseSessionMutation(), onSuccess: cache.show, onError: cache.refetch })
   const resume = useMutation({ ...resumeSessionMutation(), onSuccess: cache.show, onError: cache.refetch })
   const snooze = useMutation({ ...snoozeSessionMutation(), onSuccess: cache.show, onError: cache.refetch })
+  // Afterwards the session request is refused, which shows the login form.
+  const logout = useMutation({ ...logoutMutation(), onSettled: cache.refetch })
   const end = useMutation({ ...endSessionMutation(), onSuccess: () => cache.show(null), onError: cache.refetch })
 
   return (
@@ -35,7 +39,20 @@ export default function App() {
       <header className="brand">
         <Logo size={36} />
         <h1>Overworked</h1>
-        {current.isSuccess && <PushToggle />}
+        {current.isSuccess && (
+          <>
+            <PushToggle />
+            <button
+              type="button"
+              className="icon-button"
+              aria-label="Abmelden"
+              title="Abmelden"
+              onClick={() => logout.mutate({})}
+            >
+              <LogOut aria-hidden size={22} />
+            </button>
+          </>
+        )}
       </header>
       <main>
         {current.isPending ? (

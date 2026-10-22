@@ -552,6 +552,7 @@ button.chip[aria-pressed='true'] {
   display: none;
 }
 
-.bell {
-  margin-left: auto;
+/* Bell and logout sit at the right end of the header. */
+.brand h1 {
+  margin-right: auto;
 }

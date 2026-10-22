@@ -654,3 +654,18 @@ it('shows no bell without web push', async () => {
   await expect.element(screen.getByText('Feierabend um 15:30')).toBeVisible()
   await expect.element(screen.getByRole('button', { name: /Benachrichtigungen/ })).not.toBeInTheDocument()
 })
+
+it('logs out', async () => {
+  givenCurrentSession(running)
+  worker.use(
+    http.post('/api/logout', () => {
+      givenLoggedOut()
+      return new HttpResponse(null, { status: 204 })
+    }),
+  )
+  const screen = await render(<App />)
+
+  await userEvent.click(screen.getByRole('button', { name: 'Abmelden' }))
+
+  await expect.element(screen.getByLabelText('Passwort')).toBeVisible()
+})

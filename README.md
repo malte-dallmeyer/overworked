@@ -4,9 +4,23 @@ Ein Wecker, der dich penetrant daran erinnert, Feierabend zu machen. **Keine Zei
 keine Historie, keine Statistiken, keine Überstundenkonten.
 
 Du startest den Timer mit deiner Sollzeit, und sobald sie erreicht ist, klingelt dein Handy
-über [ntfy](https://ntfy.sh).
+über [ntfy](https://ntfy.sh). Und zwar so lange, bis du Feierabend machst.
 
-> Status: früher Prototyp (Walking Skeleton). Siehe [docs/story-map.md](docs/story-map.md).
+- **Starten:** Sollzeit eingeben oder aus den zuletzt genutzten wählen, auf Wunsch rückwirkend
+  („Schon früher angefangen?“).
+- **Pausen:** spontan per Knopf, vergessene nachtragen, geplante vorab eintragen. Die
+  gesetzliche Pause (ArbZG §4) ist immer eingerechnet.
+- **Alarm:** wiederholt sich alle 2 Minuten bis zur Bestätigung, direkt aus der Benachrichtigung
+  heraus. Einmal Snooze (10 min). Ohne Reaktion endet die Session nach 20 Minuten von selbst.
+- **Grenzen:** Hinweise, wenn die Pflichtpause fällig ist oder Feierabend naht; Warnung und
+  harte Grenze bei 10 Stunden Arbeit (ArbZG §3). Verlängern nach dem Alarm geht nur gegen eine
+  deutliche Aufforderung, doch lieber Feierabend zu machen.
+- **Überall:** als App installierbar (PWA), Handy und Laptop zeigen live denselben Stand,
+  Desktop-Browser bekommen den Alarm als Benachrichtigung.
+- **Privat:** selbst gehostet, ein Container, SQLite. Gespeichert werden nur die letzten fünf
+  Sessions.
+
+Was als Nächstes kommt und warum etwas so ist, wie es ist: [docs/story-map.md](docs/story-map.md).
 
 ## Schnellstart mit Docker Compose
 

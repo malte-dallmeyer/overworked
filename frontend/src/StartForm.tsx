@@ -20,6 +20,8 @@ export function StartForm({ onStart }: StartFormProps) {
 function StartFormFields({ targets, onStart }: StartFormProps & { targets: QuickTargetsOut }) {
   const quickTargets = targets.choices.map(formatDuration)
   const [target, setTarget] = useState(formatDuration(targets.last))
+  // Once, when the start screen appears; no need to follow the clock.
+  const [hello] = useState(() => greeting(new Date()))
   const [startTime, setStartTime] = useState('')
   const [targetError, setTargetError] = useState<string | null>(null)
   const [startError, setStartError] = useState<string | null>(null)
@@ -49,7 +51,7 @@ function StartFormFields({ targets, onStart }: StartFormProps & { targets: Quick
 
   return (
     <form className="start card" onSubmit={startNow}>
-      <h2>{greeting(new Date())}</h2>
+      <h2>{hello}</h2>
       <p className="muted">Wie lange arbeitest du heute?</p>
 
       <label htmlFor="target" className="label">
