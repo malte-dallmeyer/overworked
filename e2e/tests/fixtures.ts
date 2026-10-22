@@ -5,6 +5,7 @@ export { expect } from '@playwright/test'
 export type WorkSession = {
   started_at: string
   target_minutes: number
+  required_break_minutes: number
   pauses: { id: number; started_at: string; ended_at: string | null }[]
 }
 
@@ -12,9 +13,10 @@ export async function currentSession(request: APIRequestContext): Promise<WorkSe
   return (await request.get('/api/session/current')).json()
 }
 
-/** End of a session without pauses. */
+/** End of a session without pauses taken yet: target plus the legal break. */
 export function plannedEnd(session: WorkSession): Date {
-  return new Date(Date.parse(session.started_at) + session.target_minutes * 60_000)
+  const minutes = session.target_minutes + session.required_break_minutes
+  return new Date(Date.parse(session.started_at) + minutes * 60_000)
 }
 
 /** Formats like the app does for a German user in Berlin. */

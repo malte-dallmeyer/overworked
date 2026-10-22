@@ -30,6 +30,15 @@ MAX_BACKDATING = timedelta(hours=24)
 CLOCK_SKEW_TOLERANCE = timedelta(minutes=1)
 
 
+# ArbZG §4: more than 6 h of work need 30 min break in total, more than 9 h need 45 min;
+# only break parts of at least 15 min count.
+LEGAL_BREAKS = (
+    (timedelta(hours=9), timedelta(minutes=45)),
+    (timedelta(hours=6), timedelta(minutes=30)),
+)
+MIN_LEGAL_BREAK_PART = timedelta(minutes=15)
+
+
 class InvalidStart(ValueError):
     pass
 
@@ -89,19 +98,50 @@ class WorkSession(Base):
     def is_paused(self, now: datetime) -> bool:
         return self.is_active and bool(self.pauses_at(now))
 
+    def _merged_pauses(self, now: datetime) -> list[tuple[datetime, datetime, bool]]:
+        """Pause spans (start, end, contains the running pause); overlapping pauses merged."""
+        merged: list[tuple[datetime, datetime, bool]] = []
+        spans = sorted((p.started_at, p.ended_at or now, p.ended_at is None) for p in self.pauses)
+        for start, end, running in spans:
+            if merged and start <= merged[-1][1]:
+                last_start, last_end, last_running = merged[-1]
+                merged[-1] = (last_start, max(last_end, end), last_running or running)
+            else:
+                merged.append((start, end, running))
+        return merged
+
     def paused_duration(self, now: datetime) -> timedelta:
         """Total pause time, planned pauses included. Overlapping pauses count once."""
-        merged: list[tuple[datetime, datetime]] = []
-        for start, end in sorted((p.started_at, p.ended_at or now) for p in self.pauses):
-            if merged and start <= merged[-1][1]:
-                merged[-1] = (merged[-1][0], max(merged[-1][1], end))
-            else:
-                merged.append((start, end))
-        return sum((end - start for start, end in merged), timedelta())
+        return sum((end - start for start, end, _ in self._merged_pauses(now)), timedelta())
+
+    @property
+    def required_break(self) -> timedelta:
+        """Break the law requires for the target work time."""
+        target = timedelta(minutes=self.target_minutes)
+        return next((brk for threshold, brk in LEGAL_BREAKS if target > threshold), timedelta())
+
+    def missing_break(self, now: datetime) -> timedelta:
+        """Required break not covered by pauses yet. A running pause counts right away;
+        otherwise the end would first move and then jump back once it reaches 15 min."""
+        counted = sum(
+            (
+                end - start
+                for start, end, running in self._merged_pauses(now)
+                if running or end - start >= MIN_LEGAL_BREAK_PART
+            ),
+            timedelta(),
+        )
+        return max(timedelta(), self.required_break - counted)
 
     def end_at(self, now: datetime) -> datetime:
-        """When work is done; during a running pause without end this moves along with `now`."""
-        return self.started_at + timedelta(minutes=self.target_minutes) + self.paused_duration(now)
+        """When work is done: target plus pauses plus the legal break not taken yet.
+        During a running pause beyond the legal break this moves along with `now`."""
+        return (
+            self.started_at
+            + timedelta(minutes=self.target_minutes)
+            + self.paused_duration(now)
+            + self.missing_break(now)
+        )
 
     def is_due(self, now: datetime) -> bool:
         return self.is_active and not self.is_paused(now) and now >= self.end_at(now)

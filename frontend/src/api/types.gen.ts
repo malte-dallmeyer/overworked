@@ -63,6 +63,12 @@ export type SessionOut = {
      */
     target_minutes: number;
     /**
+     * Required Break Minutes
+     *
+     * Break the law requires for the target (ArbZG §4). Pauses of at least 15 min (or the running one) count towards it; what is missing extends the end.
+     */
+    required_break_minutes: number;
+    /**
      * Pauses
      *
      * Past, running and planned pauses, by start.

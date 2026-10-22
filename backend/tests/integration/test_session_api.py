@@ -19,6 +19,7 @@ def test_starting_a_session_returns_it(client):
     assert response.json() == {
         "started_at": "2026-10-22T08:00:00Z",
         "target_minutes": 450,
+        "required_break_minutes": 30,
         "pauses": [],
     }
 

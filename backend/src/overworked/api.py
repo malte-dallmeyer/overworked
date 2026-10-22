@@ -44,6 +44,10 @@ class SessionOut(BaseModel):
 
     started_at: datetime
     target_minutes: int
+    required_break_minutes: int = Field(
+        description="Break the law requires for the target (ArbZG §4). Pauses of at least "
+        "15 min (or the running one) count towards it; what is missing extends the end."
+    )
     pauses: list[PauseOut] = Field(description="Past, running and planned pauses, by start.")
 
     @classmethod
@@ -51,6 +55,7 @@ class SessionOut(BaseModel):
         return cls(
             started_at=session.started_at,
             target_minutes=session.target_minutes,
+            required_break_minutes=int(session.required_break.total_seconds() // 60),
             pauses=[
                 PauseOut(id=p.id, started_at=p.started_at, ended_at=p.ended_at)
                 for p in sorted(session.pauses, key=lambda p: p.started_at)

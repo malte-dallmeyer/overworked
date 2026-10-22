@@ -10,7 +10,9 @@ test('start a session and see when work ends', async ({ page, request }) => {
   const session = await currentSession(request)
   expect(session?.target_minutes).toBe(450)
   await expect(page.getByText(`Feierabend um ${clockTime(plannedEnd(session!))}`)).toBeVisible()
-  await expect(page.getByText(/^noch 7:(29|30):\d\d$/)).toBeVisible()
+  // 7:30 h plus 30 min legal break, counting down from 8:00:00.
+  await expect(page.getByText(/^noch (7:59:\d\d|8:00:00)$/)).toBeVisible()
+  await expect(page.getByText('inkl. 30 min Pflichtpause')).toBeVisible()
 })
 
 test('a running session survives a reload', async ({ page }) => {
@@ -74,6 +76,8 @@ test('paused on the phone, the laptop shows the same time left', async ({ browse
   const phone = await phoneContext.newPage()
 
   await laptop.goto('/')
+  // 6 h: no legal break, so the time left stands still from the first second of the pause.
+  await laptop.getByLabel('Sollzeit').fill('6:00')
   await laptop.getByRole('button', { name: 'Jetzt starten' }).click()
   await phone.goto('/')
   await phone.getByRole('button', { name: 'Pause', exact: true }).click()
@@ -101,12 +105,14 @@ test('forgot to start: start with the time work actually began', async ({ page }
   await page.getByLabel('Angefangen um').fill(anHourAgo)
   await page.getByRole('button', { name: 'Mit dieser Startzeit starten' }).click()
 
-  // 8 h target, started 60–61 minutes ago (the start time has minute precision).
-  await expect(page.getByText(/^noch (6:5\d|7:00):\d\d$/)).toBeVisible()
+  // 8 h target plus 30 min legal break, started 60–61 minutes ago (minute precision).
+  await expect(page.getByText(/^noch 7:(29:\d\d|30:00)$/)).toBeVisible()
 })
 
 test('plan a pause: the end time moves right away', async ({ page, request }) => {
   await page.goto('/')
+  // 6 h: no legal break that the pause would cover instead of moving the end.
+  await page.getByLabel('Sollzeit').fill('6:00')
   await page.getByRole('button', { name: 'Jetzt starten' }).click()
   const session = (await currentSession(request))!
   const pauseStart = new Date(Date.parse(session.started_at) + 2 * 60 * 60_000)

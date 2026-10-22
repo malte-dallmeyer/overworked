@@ -158,3 +158,8 @@ button.link {
   color: var(--accent);
   text-decoration: underline;
 }
+
+.hint {
+  color: var(--muted);
+  margin: 0;
+}

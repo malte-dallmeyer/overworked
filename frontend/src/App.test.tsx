@@ -6,9 +6,11 @@ import { renderWithQueryClient as render } from './test/render'
 import { worker } from './test/worker'
 
 // "Now" is 11:00Z = 13:00 in Berlin. Ends 13:30Z = 15:30 Berlin.
+// Without legal break, so the times stay easy to follow; see the legal break tests at the end.
 const running = {
   started_at: '2026-10-22T06:00:00Z',
   target_minutes: 450,
+  required_break_minutes: 0,
   pauses: [],
 }
 
@@ -283,4 +285,23 @@ it('asks for both times of a pause', async () => {
   await userEvent.click(screen.getByRole('button', { name: 'Pause eintragen' }))
 
   await expect.element(screen.getByRole('alert')).toHaveTextContent('Bitte Beginn und Ende der Pause eingeben')
+})
+
+// --- Legal break ---
+
+it('includes the legal break in the end time and says so', async () => {
+  givenCurrentSession({ ...running, required_break_minutes: 30 })
+  const screen = await render(<App />)
+
+  await expect.element(screen.getByText('Feierabend um 16:00')).toBeVisible()
+  await expect.element(screen.getByText('inkl. 30 min Pflichtpause')).toBeVisible()
+})
+
+it('drops the hint once the legal break is taken', async () => {
+  const longEnough = { id: 1, started_at: '2026-10-22T09:00:00Z', ended_at: '2026-10-22T09:30:00Z' }
+  givenCurrentSession({ ...running, required_break_minutes: 30, pauses: [longEnough] })
+  const screen = await render(<App />)
+
+  await expect.element(screen.getByText('Feierabend um 16:00')).toBeVisible()
+  await expect.element(screen.getByText(/Pflichtpause/)).not.toBeInTheDocument()
 })

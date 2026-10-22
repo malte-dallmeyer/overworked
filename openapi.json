@@ -343,6 +343,11 @@
             "type": "integer",
             "title": "Target Minutes"
           },
+          "required_break_minutes": {
+            "type": "integer",
+            "title": "Required Break Minutes",
+            "description": "Break the law requires for the target (ArbZG §4). Pauses of at least 15 min (or the running one) count towards it; what is missing extends the end."
+          },
           "pauses": {
             "items": {
               "$ref": "#/components/schemas/PauseOut"
@@ -356,6 +361,7 @@
         "required": [
           "started_at",
           "target_minutes",
+          "required_break_minutes",
           "pauses"
         ],
         "title": "SessionOut",

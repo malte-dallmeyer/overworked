@@ -9,7 +9,7 @@ import {
   startSessionMutation,
 } from './api/@tanstack/react-query.gen'
 import { PausePanel } from './PausePanel'
-import { currentPause, endTime, remainingMs } from './session'
+import { currentPause, endTime, missingBreakMs, remainingMs } from './session'
 import { formatClockTime, formatCountdown, formatDuration, latestPastTime, parseDuration } from './time'
 import { useNow } from './useNow'
 import { useSessionCache } from './useSessionCache'
@@ -127,12 +127,16 @@ type RunningSessionProps = {
 function RunningSession({ session, onPause, onResume, onEnd }: RunningSessionProps) {
   const now = useNow()
   const pause = currentPause(session, now)
+  const missingBreak = missingBreakMs(session, now)
 
   return (
     <>
       <section>
         {pause && <p className="paused">Pausiert seit {formatClockTime(new Date(pause.started_at))}</p>}
         <p className="end">Feierabend um {formatClockTime(endTime(session, now))}</p>
+        {missingBreak > 0 && (
+          <p className="hint">inkl. {Math.ceil(missingBreak / 60_000)} min Pflichtpause</p>
+        )}
         <p className="remaining">noch {formatCountdown(remainingMs(session, now))}</p>
         {pause ? (
           <button onClick={onResume}>Weiter</button>
