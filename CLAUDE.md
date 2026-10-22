@@ -12,8 +12,8 @@ docs/story-map.md. Talk to the user in German.
 - `e2e/` – Playwright end-to-end tests against the full stack (built frontend served by a real backend, fresh SQLite).
 - `Dockerfile` / `docker-compose.yml` – single container serving both.
 - `deploy/` – production: Terraform (GCP e2-micro + Cloudflare DNS), `compose.yml` with Caddy for
-  HTTPS, `scripts/deploy.mjs <user@host>`. CI (`.github/workflows/ci.yml`) tests every push and
-  publishes the image to GHCR from `main`. Setup steps: `deploy/README.md`.
+  HTTPS, `scripts/deploy.mjs <user@host>`. CI (`.github/workflows/ci.yml`) runs lint and each kind of test as a
+  parallel job on every push and publishes the image to GHCR from `main` once all are green. Setup steps: `deploy/README.md`.
 
 ## Commands
 
@@ -71,7 +71,8 @@ Scripts must stay cross-platform (Linux, macOS, Windows): no shell syntax, spawn
 - MSW 3: the unhandled-request option is `onUnhandledFrame`, not `onUnhandledRequest`. The worker
   script is served by `msw/vite` in the component test project only, never shipped in the app build.
 - Vitest Browser Mode `toHaveTextContent(string)` matches the full text, unlike jest-dom.
-- Keep `playwright` in `frontend/` and `@playwright/test` in `e2e/` on the same version (shared browser download).
+- Keep `playwright` in `frontend/` and `@playwright/test` in `e2e/` on the same version (shared browser download),
+  and the CI container tag (`mcr.microsoft.com/playwright:v<version>-noble` in `.github/workflows/ci.yml`) with them.
 - PWA: `frontend/public/manifest.webmanifest` and a minimal `sw.js` (registered in production builds
   only). No offline cache on purpose; the service worker is where web push will arrive.
 - Dev container: the venv lives at `$UV_PROJECT_ENVIRONMENT` (outside the workspace). There is no display, so headed runs only work on the host.

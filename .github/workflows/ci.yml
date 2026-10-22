@@ -4,21 +4,90 @@ on:
   push:
   pull_request:
 
+# Every kind of test is its own job, so they run in parallel and a red one is visible at a glance.
+# Jobs that need a browser run in Playwright's image (Chromium and its system libraries included);
+# keep its tag on the version in frontend/ and e2e/package.json.
+
 jobs:
-  test:
+  lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node scripts/setup.mjs
-      - name: System libraries for Chromium
-        run: npx playwright install-deps chromium
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+      - run: npm ci
+        working-directory: frontend
+      - run: npm ci
         working-directory: e2e
       - run: node scripts/lint.mjs
-      - run: node scripts/test-all.mjs
+
+  backend:
+    name: backend (${{ matrix.suite }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [unit, integration]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: node scripts/test-backend.mjs ${{ matrix.suite }}
+
+  frontend-unit:
+    name: frontend (unit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - run: node scripts/test-frontend.mjs unit
+
+  frontend-component:
+    name: frontend (component)
+    runs-on: ubuntu-latest
+    container: mcr.microsoft.com/playwright:v1.64.1-noble
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+        working-directory: frontend
+      - run: node scripts/test-frontend.mjs component
+
+  e2e:
+    runs-on: ubuntu-latest
+    container: mcr.microsoft.com/playwright:v1.64.1-noble
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: '**/package-lock.json'
+      - run: npm ci
+        working-directory: frontend
+      - run: npm ci
+        working-directory: e2e
+      - run: node scripts/test-e2e.mjs
       - name: Playwright report
         if: failure()
         uses: actions/upload-artifact@v4
@@ -27,9 +96,9 @@ jobs:
           path: e2e/playwright-report/
           retention-days: 7
 
-  # Only what passed the tests on main becomes the image the server pulls.
+  # Only what passed everything on main becomes the image the server pulls.
   image:
-    needs: test
+    needs: [lint, backend, frontend-unit, frontend-component, e2e]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
