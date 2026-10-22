@@ -18,8 +18,7 @@ genauso: Dann entfällt Schritt 2, und du legst den DNS-Eintrag von Hand an.
 - Das Repo auf GitHub. Jeder Push auf `main` mit grünen Tests erzeugt ein neues Image.
 - Ein Google-Cloud-Projekt mit aktivierter Abrechnung (auch für das Free Tier nötig).
 - Lokal: [Terraform](https://developer.hashicorp.com/terraform/install) ≥ 1.6 (oder OpenTofu),
-  die [gcloud CLI](https://cloud.google.com/sdk/docs/install) (nur zum Anmelden) und ein
-  SSH-Schlüssel (`ssh-keygen -t ed25519`).
+  die [gcloud CLI](https://cloud.google.com/sdk/docs/install) (nur zum Anmelden) und OpenSSH.
 - Eine Domain, deren DNS bei Cloudflare liegt.
 
 **Kosten:** Die e2-micro (in `us-west1`, `us-central1` oder `us-east1`) und 30 GB Disk sind im
@@ -57,6 +56,16 @@ gcloud storage buckets create gs://<projekt-id>-tfstate --location=us-central1 -
 gcloud storage buckets update gs://<projekt-id>-tfstate --versioning
 ```
 
+Für den Server nimmst du einen eigenen SSH-Schlüssel, nicht den für GitHub o. Ä. So betrifft ein
+kompromittierter Schlüssel nur einen Zugang und lässt sich einzeln austauschen:
+
+```sh
+ssh-keygen -t ed25519 -f ~/.ssh/overworked -C "overworked-deploy"
+```
+
+Mit Passphrase fragt das Deploy-Skript sie bei jedem Lauf ab (zweimal: `scp`, dann `ssh`), außer
+du lädst den Schlüssel in einen ssh-agent (`ssh-add ~/.ssh/overworked`).
+
 Dann die Infrastruktur:
 
 ```sh
@@ -64,6 +73,7 @@ cd deploy/terraform
 cp backend.hcl.example backend.hcl             # Bucket-Namen eintragen
 cp terraform.tfvars.example terraform.tfvars   # ausfüllen, inkl. Cloudflare-Token
 terraform init -backend-config=backend.hcl
+terraform plan                                 # zeigt, was angelegt würde, ändert nichts
 terraform apply
 ```
 
@@ -72,11 +82,24 @@ Auf einem weiteren Rechner genügen `backend.hcl`, `terraform.tfvars` und
 
 Beim ersten Start installiert die VM Docker. Das dauert ein bis zwei Minuten.
 
+Damit `ssh overworked` und das Deploy-Skript den richtigen Schlüssel nehmen, einen Eintrag in
+`~/.ssh/config` anlegen (die IP liefert `terraform output -raw ip`):
+
+```
+Host overworked
+    HostName <ip>
+    User overworked
+    IdentityFile ~/.ssh/overworked
+    IdentitiesOnly yes
+```
+
+`ssh overworked docker --version` zeigt, ob die VM bereit ist.
+
 ## 3. Konfigurieren und starten
 
 ```sh
 cp deploy/.env.example deploy/.env             # ausfüllen: Image, Domain, Passwort, Secret Key, ntfy-Topic
-node scripts/deploy.mjs "$(terraform -chdir=deploy/terraform output -raw ssh)"
+node scripts/deploy.mjs overworked
 ```
 
 Caddy holt beim ersten Aufruf der Domain das Zertifikat. Danach läuft die App unter
@@ -96,7 +119,7 @@ Caddy holt beim ersten Aufruf der Domain das Zertifikat. Danach läuft die App u
 Push auf `main` und warten, bis die CI grün ist. Dann:
 
 ```sh
-node scripts/deploy.mjs "$(terraform -chdir=deploy/terraform output -raw ssh)"
+node scripts/deploy.mjs overworked
 ```
 
 Das Skript kopiert auch geänderte Dateien wie `compose.yml`, `Caddyfile` und `.env` neu auf den

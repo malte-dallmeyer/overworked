@@ -6,8 +6,8 @@
 //
 // Aufruf: node scripts/deploy.mjs <user@host>
 //
-//   <user@host>  SSH-Ziel, z. B. die Ausgabe von `terraform output -raw ssh`
-//                in deploy/terraform/
+//   <user@host>  SSH-Ziel: der Host-Eintrag aus ~/.ssh/config (z. B. `overworked`)
+//                oder user@ip, siehe `terraform output -raw ssh` in deploy/terraform/
 //
 // Erstes Einrichten des Servers: deploy/README.md
 

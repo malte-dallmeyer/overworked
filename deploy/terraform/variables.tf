@@ -38,6 +38,7 @@ variable "ssh_user" {
 }
 
 variable "ssh_public_key_file" {
-  type    = string
-  default = "~/.ssh/id_ed25519.pub"
+  description = "Public half of a key used only for this server, see deploy/README.md."
+  type        = string
+  default     = "~/.ssh/overworked.pub"
 }

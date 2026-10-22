@@ -5,4 +5,4 @@ cloudflare_zone_id = "0123456789abcdef0123456789abcdef"
 # Zone > DNS > Edit, limited to this zone. Stays local: terraform.tfvars is not committed.
 # Alternatively leave it out and set CLOUDFLARE_API_TOKEN in the environment.
 cloudflare_api_token = ""
-# ssh_public_key_file = "~/.ssh/id_ed25519.pub"
+# ssh_public_key_file = "~/.ssh/overworked.pub"   # the default
