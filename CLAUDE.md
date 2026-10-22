@@ -24,6 +24,7 @@ which is the documentation, so keep it accurate). Shared helpers (arg parsing vi
 - E2E: `node scripts/test-e2e.mjs [--watch] [--headed] [--ui] [--report] [-- playwright args]`
 - New DB migration after changing models: `node scripts/new-migration.mjs "<message>"`
 - After changing the API: `node scripts/generate-api.mjs` (lint fails on drift, so does `test_openapi.py`)
+- After changing the logo (`frontend/public/favicon.svg`, mirrored in `Logo.tsx`): `node scripts/generate-icons.mjs`
 - Image: `docker compose build`
 
 Scripts must stay cross-platform (Linux, macOS, Windows): no shell syntax, spawn via the helpers.
@@ -68,4 +69,6 @@ Scripts must stay cross-platform (Linux, macOS, Windows): no shell syntax, spawn
   script is served by `msw/vite` in the component test project only, never shipped in the app build.
 - Vitest Browser Mode `toHaveTextContent(string)` matches the full text, unlike jest-dom.
 - Keep `playwright` in `frontend/` and `@playwright/test` in `e2e/` on the same version (shared browser download).
+- PWA: `frontend/public/manifest.webmanifest` and a minimal `sw.js` (registered in production builds
+  only). No offline cache on purpose; the service worker is where web push will arrive.
 - Dev container: the venv lives at `$UV_PROJECT_ENVIRONMENT` (outside the workspace). There is no display, so headed runs only work on the host.
