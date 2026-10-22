@@ -1,8 +1,11 @@
 const MAX_MINUTES = 24 * 60
 
-/** Parses "h:mm" or "h" into minutes; null if invalid or out of range. */
+/**
+ * Parses "h:mm" or "h" into minutes; null if invalid or out of range. Phone number pads
+ * have no colon, so "h,mm", "h.mm" and digits only ("730") work as well.
+ */
 export function parseDuration(input: string): number | null {
-  const match = /^(\d{1,2})(?::(\d{2}))?$/.exec(input.trim())
+  const match = /^(\d{1,2})(?:[:,.]?(\d{2}))?$/.exec(input.trim())
   if (!match) return null
   const hours = Number(match[1])
   const minutes = Number(match[2] ?? 0)

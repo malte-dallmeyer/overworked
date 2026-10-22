@@ -42,9 +42,14 @@ export function StartForm({ onStart }: StartFormProps) {
       <input
         id="target"
         className="target-input"
-        inputMode="numeric"
+        // Number pad with a decimal separator; there is no pad with a colon.
+        inputMode="decimal"
         value={target}
         onChange={(e) => setTarget(e.target.value)}
+        onBlur={() => {
+          const minutes = parseDuration(target)
+          if (minutes !== null) setTarget(formatDuration(minutes))
+        }}
         aria-describedby={targetError ? 'target-error' : undefined}
       />
       <div className="chips" role="group" aria-label="Schnellauswahl Sollzeit">

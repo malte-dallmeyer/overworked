@@ -15,11 +15,18 @@ describe('parseDuration', () => {
     ['0:45', 45],
     [' 8:05 ', 485],
     ['8', 480],
+    // Phone number pads have no colon: comma, dot or just digits work as well.
+    ['7,30', 450],
+    ['7.30', 450],
+    ['730', 450],
+    ['0730', 450],
+    ['1015', 615],
   ])('reads %j as %i minutes', (input, minutes) => {
     expect(parseDuration(input)).toBe(minutes)
   })
 
-  it.each(['', 'abc', '7:60', '0:00', '25:00', '7:5'])('rejects %j', (input) => {
+  // "7,5" could mean 7:05 or 7.5 hours, so minutes always take two digits.
+  it.each(['', 'abc', '7:60', '0:00', '25:00', '7:5', '7,5', '760', '12345'])('rejects %j', (input) => {
     expect(parseDuration(input)).toBeNull()
   })
 })

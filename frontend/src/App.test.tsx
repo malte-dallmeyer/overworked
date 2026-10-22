@@ -99,6 +99,26 @@ it('picks a target from the quick choices', async () => {
   expect(requested).toEqual({ target_minutes: 450 })
 })
 
+it('takes the target with a comma, as phone number pads have no colon', async () => {
+  givenCurrentSession(null)
+  let requested: unknown
+  worker.use(
+    http.post('/api/session', async ({ request }) => {
+      requested = await request.json()
+      return HttpResponse.json(running, { status: 201 })
+    }),
+  )
+  const screen = await render(<App />)
+
+  await userEvent.fill(screen.getByLabelText('Sollzeit'), '7,30')
+  await userEvent.tab()
+  await expect.element(screen.getByLabelText('Sollzeit')).toHaveValue('7:30')
+  await userEvent.click(screen.getByRole('button', { name: 'Jetzt starten' }))
+
+  await expect.element(screen.getByText('Feierabend um 15:30')).toBeVisible()
+  expect(requested).toEqual({ target_minutes: 450 })
+})
+
 it('does not start with an invalid target', async () => {
   givenCurrentSession(null)
   const screen = await render(<App />)
