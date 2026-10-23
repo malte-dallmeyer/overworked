@@ -22,6 +22,22 @@ Du startest den Timer mit deiner Sollzeit, und sobald sie erreicht ist, klingelt
 
 Was als Nächstes kommt und warum etwas so ist, wie es ist: [docs/story-map.md](docs/story-map.md).
 
+## So sieht es aus
+
+<p align="center">
+  <img src="docs/media/demo.gif" width="300" alt="Demo: Sollzeit 7:30 h starten, Mittagspause eintragen, Restzeit anpassen; am Nachmittag Alarm, Snooze und Feierabend">
+  <br>
+  <a href="docs/media/demo.mp4">Video in voller Qualität</a>
+</p>
+
+| Start | Unterwegs | Pausen |
+|:---:|:---:|:---:|
+| <img src="docs/media/start.png" width="220" alt="Startbildschirm mit Sollzeit und Schnellauswahl"> | <img src="docs/media/running.png" width="220" alt="Ring mit Restzeit, erledigter und geplanter Pause"> | <img src="docs/media/pauses.png" width="220" alt="Pausenliste mit Formular zum Nachtragen und Planen"> |
+| **Feierabend!** | **Verlängern? Lieber nicht.** | **Dunkel** |
+| <img src="docs/media/alarm.png" width="220" alt="Alarm mit Snooze und Feierabend machen"> | <img src="docs/media/extend-warning.png" width="220" alt="Warnung beim Verlängern nach dem Alarm"> | <img src="docs/media/dark.png" width="220" alt="Laufende Session im dunklen Modus"> |
+
+Der Himmel wandert mit dem Tag: morgens hell, zum Feierabend Abendrot.
+
 ## Schnellstart mit Docker Compose
 
 ```sh
@@ -86,6 +102,7 @@ Linux, macOS und Windows. Jedes Skript beschreibt sich selbst: `node scripts/<na
 | `node scripts/generate-api.mjs [--check]` | `openapi.json` und den Frontend-API-Client nach API-Änderungen neu erzeugen |
 | `node scripts/deploy.mjs <user@host>` | Neueste Version auf den Server bringen, siehe [deploy/README.md](deploy/README.md) |
 | `node scripts/generate-vapid-keys.mjs` | Schlüssel für Web-Push (Desktop-Benachrichtigungen) erzeugen |
+| `node scripts/capture-media.mjs` | Screenshots und Demo-Video für dieses README neu aufnehmen (braucht ffmpeg) |
 | `node scripts/generate-icons.mjs` | App-Icons (PWA, Homescreen) aus dem Logo `frontend/public/favicon.svg` erzeugen |
 
 Optionen nach `--` gehen an das Test-Tool, z. B. `node scripts/test-backend.mjs unit -- -k alarm`.

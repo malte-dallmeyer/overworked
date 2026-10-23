@@ -30,6 +30,8 @@ which is the documentation, so keep it accurate). Shared helpers (arg parsing vi
 - New DB migration after changing models: `node scripts/new-migration.mjs "<message>"`
 - After changing the API: `node scripts/generate-api.mjs` (lint fails on drift, so does `test_openapi.py`)
 - After changing the logo (`frontend/public/favicon.svg`, mirrored in `Logo.tsx`): `node scripts/generate-icons.mjs`
+- After visible UI changes: `node scripts/capture-media.mjs` (README screenshots and demo video in
+  `docs/media/`; runs the app on a demo clock, needs ffmpeg)
 - Image: `docker compose build`
 
 Scripts must stay cross-platform (Linux, macOS, Windows): no shell syntax, spawn via the helpers.
