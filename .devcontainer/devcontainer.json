@@ -2,7 +2,7 @@
   "name": "Overworked",
   "image": "mcr.microsoft.com/devcontainers/python:3.13-bookworm",
   "features": {
-    "ghcr.io/devcontainers/features/node:1": { "version": "22" },
+    "ghcr.io/devcontainers/features/node:1": { "version": "24" },
     // Lets you run `docker compose build` from inside the container, using the host's Docker.
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
   },

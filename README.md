@@ -77,7 +77,7 @@ im Watch-Modus; „Alle Tests“ ist der Standard-Test-Task.
 
 ### Ohne Dev Container
 
-Voraussetzungen: [uv](https://docs.astral.sh/uv/) und Node.js ≥ 22.
+Voraussetzungen: [uv](https://docs.astral.sh/uv/) und Node.js ≥ 24.
 
 ```sh
 node scripts/setup.mjs
